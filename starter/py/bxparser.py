@@ -33,13 +33,12 @@ tokens = (
   'SEMICOLON',
   'COLON',
   'COMPLEMENT',
-  'NEGATE',
 ) + tuple(reserved.values())
 
 t_PLUS = r'\+'
 t_MINUS = r'-'
 t_STAR = r'\*'
-t_SLASH = r'\\'
+t_SLASH = r'/'
 t_EQUAL = r'\='
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
@@ -54,7 +53,6 @@ t_XOR = r'\^'
 t_SEMICOLON = r'\;'
 t_COLON = r':'
 t_COMPLEMENT = r'~'
-t_NEGATE = r'-'
 
 t_ignore = ' \t\f\v'
 
@@ -68,6 +66,10 @@ def t_NUMBER(t):
     r'0|[1-9][0-9]*'
     t.value = int(t.value)
     return t
+
+def t_comment(t):
+    r'//.*\n'
+    t.lexer.lineno += 1
 
 def t_newline(t):
     r'\n'
@@ -100,7 +102,7 @@ precedence = (
     ('left', 'LSHIFT','RSHIFT'),
     ('left', 'PLUS','MINUS'),
     ('left', 'STAR','SLASH','MOD'),
-    ('nonassoc', 'NEGATE'),
+    ('nonassoc', 'NEGATION'),
     ('nonassoc', 'COMPLEMENT')
 )
 
@@ -112,16 +114,18 @@ def p_program(p):
 def p_stmt(p):
     """stmt : vardecl
         | assign
-        | print """
+        | print 
+        | stmt stmt
+        | """
 
 def p_vardecl(p):
     """vardecl : VAR IDENT EQUAL expr COLON INT SEMICOLON"""
 
 def p_assign(p):
-    """assign : IDENT EQUAL SEMICOLON"""
+    """assign : IDENT EQUAL expr SEMICOLON"""
 
 def p_print(p):
-    """print PRINT LPAREN expr RPAREN SEMICOLON"""
+    """print : PRINT LPAREN expr RPAREN SEMICOLON"""
 
 def p_expr_ident(p):
     """expr : IDENT"""
@@ -141,8 +145,10 @@ def p_expr_binop(p):
     | expr LSHIFT expr
     | expr RSHIFT expr"""
 
-def p_expr_negate(p):
-    """expr : NEGATE expr"""
+
+
+def p_expression_negation(t):
+    """expr : MINUS expr %prec NEGATION"""
 
 def p_expr_complement(p):
     """expr : COMPLEMENT expr"""
@@ -168,5 +174,21 @@ def p_error(t):
 
 parser = yacc.yacc()
 
-parser.parse("def main() { var x = 42 : int; var y = x >> 1 : int;  print(x + y); print(x - y); var z = x * 3 + y : int; print(z % x); }", lexer=lexer)
+#--------- Main ---------#
+import sys
 
+def read_file_to_string(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            file_content = file.read()
+        return file_content
+    except FileNotFoundError:
+        return f"Error: The file '{file_path}' does not exist."
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: ./myprogram.py <filename>")
+    else:
+        file_path = sys.argv[1]
+        content = read_file_to_string(file_path)
+        parser.parse(content, lexer=lexer)
