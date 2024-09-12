@@ -1,0 +1,3 @@
+def main(){
+    var y = x + 2 : int;
+}
