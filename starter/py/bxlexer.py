@@ -7,7 +7,14 @@ class Lexer:
             'def': 'DEF',
             'main': 'MAIN',
             'int': 'INT',
-            'var': 'VAR'
+            'var': 'VAR',
+            'if': 'IF',
+            'else': 'ELSE',
+            'while': 'WHILE',
+            'break': 'BREAK',
+            'continue': 'CONTINUE',
+            'true': 'TRUE',
+            'false': 'FALSE'
             }
 
     tokens = (
@@ -31,6 +38,15 @@ class Lexer:
     'SEMICOLON',
     'COLON',
     'COMPLEMENT',
+    'EQUALEQUAL',
+    'NOTEQUAL',
+    'LT',
+    'LTEQUAL',
+    'GT',
+    'GTEQUAL',
+    'BAND',
+    'BOR',
+    'NOT'
     ) + tuple(reserved.values())
 
     t_PLUS = r'\+'
@@ -45,12 +61,21 @@ class Lexer:
     t_LSHIFT = r'<<'
     t_RSHIFT = r'>>'
     t_MOD = r'%'
-    t_AND = r'\&'
+    t_AND = r'&'
     t_OR = r'\|'
     t_XOR = r'\^'
     t_SEMICOLON = r'\;'
     t_COLON = r':'
     t_COMPLEMENT = r'~'
+    t_EQUALEQUAL = r'\=\='
+    t_NOTEQUAL = r'!\='
+    t_LT = r'<'
+    t_LTEQUAL = r'<\='
+    t_GT = r'>'
+    t_GTEQUAL = r'>='
+    t_BAND = r'&&'
+    t_BOR = r'\|\|'
+    t_NOT = r'!'
 
     t_ignore = ' \t\f\v'
     t_ignore_comments =  r'//.*'

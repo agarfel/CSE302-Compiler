@@ -1,0 +1,8 @@
+def main() {
+    var x = 0 : int;
+    if (true) {
+        var y = 1 : int;
+        print(x);
+    }
+    print(y);
+}

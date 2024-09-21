@@ -1,0 +1,9 @@
+def main() {
+    {}
+    var x = 1 : int;
+    if (false) {
+        print(x);
+    } else if (true) {
+        print(x+1);
+    }
+}

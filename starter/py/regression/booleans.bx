@@ -1,0 +1,12 @@
+def main() {
+  var x = 1 == 2 == 3: int;
+  var x = 1 : int;
+  var y = 2 : int;
+  var c = x + y : int;
+  c = x || y;
+  c = x >= y;
+  c = x < y;
+  c = x >= y;
+  c = x > y;
+  c = !x;
+}

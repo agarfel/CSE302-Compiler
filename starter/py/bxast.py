@@ -11,13 +11,14 @@ class AST(abc.ABC):
 @dc.dataclass
 class Expr(AST):
     line: int
+    ty : str
 
 @dc.dataclass
 class Statement(AST):
     line: int
 
 @dc.dataclass
-class Program(AST):
+class Block(Statement):
     statements : list[Statement]
 
 @dc.dataclass
@@ -40,9 +41,13 @@ class UnOpExpr(Expr):
     operation: str
 
 @dc.dataclass
+class Bool(Expr):
+    value: str
+
+@dc.dataclass
 class VarDecl(Statement):
     name: str
-    type: str
+    ty: str
     value: Expr
 
 @dc.dataclass
@@ -53,3 +58,22 @@ class Assign(Statement):
 @dc.dataclass
 class Print(Statement):
     value: Expr
+
+@dc.dataclass
+class Block(Statement):
+    statements: list[Statement]
+    
+@dc.dataclass
+class Ifelse(Statement):
+    condition: Expr
+    ifbranch: Block
+    elsebranch: Block
+
+@dc.dataclass
+class While(Statement):
+    condition: Expr
+    block: Block
+
+@dc.dataclass
+class Jump(Statement):
+    type: str
