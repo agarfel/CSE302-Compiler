@@ -6,14 +6,15 @@ class Scope:
         self.variables = dict()
         self.start = start
     
+    
     def declare(self, name : str, register : str):
         self._variables[name] = register
-
 
 
 class ToTac:
     def __init__(self, reporter):
         self.tmp_counter = 0
+        self.label_counter = 0
         self.body = []
         self.scopes = []
         self.reporter = reporter
@@ -27,13 +28,16 @@ class ToTac:
     def processBlock(self, p : Block):
         #TO DO
         if p == None:
-            self.reporter.report("Block is empty", "-1", "Transforming AST to TAC")
+            self.reporter.report("Block is empty", p.line, "Transforming AST to TAC")
             return
-        self.scopes.append(Scope(self.tmp_counter))
-        self.body.append({f'%.{self.tmp_counter}:'})
-        self.tmp_counter += 1
+        s = self.label_counter
+        self.scopes.append(Scope(s))
+        self.body.append({"opcode": "label", "args": ['%.s{s}:'], "result": None})
+        self.label_counter += 1
         for statement in p.statements:
             self.processStatement(statement)
+        self.body.append({"opcode": "label", "args": ['%.e{s}:'], "result": None})
+
         self.scopes.pop()
 
     def processStatement(self, s: Statement):
@@ -54,24 +58,30 @@ class ToTac:
             self.body.append({"opcode": "print", "args": [value], "result": None})
 
         elif type(s) == Block:
-            #TO DO
             self.processBlock(s)
 
         elif type(s) == Ifelse:
-            #TO DO
             condition = self.processExpression(s.condition)
-            self.processBlock(ifbranch)
-            self.processBlock(elsebranch)
+            self.body.append({"opcode": "CMP", "args": [condition], "result": None})
+            self.body.append({"opcode": "jump", "args": [self.label_counter], "result": None})
+            self.processBlock(s.ifbranch)
+            self.body.append({"opcode": "jump", "args": [self.label_counter], "result": None})
+            self.processBlock(s.elsebranch)
+
         
         elif type(s) == While:
-            #TO DO
             condition = self.processExpression(s.condition)
-            self.processBlock(ifbranch)    
+            self.body.append({"opcode": "CMP", "args": [condition], "result": None})
+            self.body.append({"opcode": "jump", "args": [self.label_counter],"result":  None})
+            self.processBlock(s.block)    
 
         elif type(s) == Jump:
-            #TO DO
-            self.body.append({"opcode": "JUMP", "args": [s.type], "result": None})
-
+            if s.ty == 'break':
+                self.body.append({"opcode": "JUMP", "args": [f'e{self.scopes[-1].start}'], "result": None})
+            elif s.ty == 'continue':
+                self.body.append({"opcode": "JUMP", "args": [f's{self.scopes[-1].start}'], "result": None})
+            else:
+                self.reporter.report("Unidentified jump: {s.ty}", s.line, "Transforming AST to TAC")
 
     def processExpression(self, e : Expr):
         if type(e) == VarExpr:
@@ -110,27 +120,27 @@ class ToTac:
         elif op == '*': return "mul"
         elif op == '/': return "div"
         elif op == '%': return "mod"
-        elif op == '&': return "and"
-        elif op == '|': return "or"
+        elif op == '&': return "band"
+        elif op == '|': return "bor"
         elif op == '^': return "xor"
         elif op == '<<': return "shl"
         elif op == '>>': return "shr"
         #TO DO
-        elif op == '==': return ""
-        elif op == '!=': return ""
-        elif op == '<': return ""
-        elif op == '<=': return ""
-        elif op == '>': return ""
-        elif op == '>=': return ""
-        elif op == '&&': return ""
-        elif op == '||': return ""
+        elif op == '==': return "eq"
+        elif op == '!=': return "neq"
+        elif op == '<': return "lt"
+        elif op == '<=': return "lteq"
+        elif op == '>': return "gt"
+        elif op == '>=': return "gteq"
+        elif op == '&&': return "and"
+        elif op == '||': return "or"
 
 
     def getUnOp(self, op):
         if op == '-': return "neg"
-        elif op == '~': return "not"
+        elif op == '~': return "bnot"
         #TO DO
-        elif op == '!': return ""
+        elif op == '!': return "not"
 
 
     def getData(self):

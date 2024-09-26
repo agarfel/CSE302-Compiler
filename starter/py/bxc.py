@@ -41,13 +41,11 @@ def run_compiler(reporter, content, debug=False):
     if debug: 
         print(ast)
 
-    """
     totac = ToTac(reporter)
     totac.processBlock(ast)
     data = totac.getData()
     with open('source.tac.json', 'w') as f:
         json.dump(data, f)
-    """
     
 
 

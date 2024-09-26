@@ -78,7 +78,7 @@ class Parser:
     def p_jump(self, p):
         """jump : BREAK SEMICOLON
                 | CONTINUE SEMICOLON"""
-        p[0] = Jump(type=p[1], line=p.lineno(1))
+        p[0] = Jump(ty=p[1], line=p.lineno(1))
 
     def p_block(self, p):
         """block : LCPAREN stmts RCPAREN"""

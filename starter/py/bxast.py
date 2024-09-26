@@ -76,4 +76,4 @@ class While(Statement):
 
 @dc.dataclass
 class Jump(Statement):
-    type: str
+    ty: str
