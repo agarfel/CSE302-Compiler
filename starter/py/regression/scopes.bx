@@ -1,8 +1,16 @@
 def main() {
-    var x = 0 : int;
-    if (true) {
-        var y = 1 : int;
-        print(x);
-    }
+  var x = 10 : int;
+  print(x);
+
+  {
+    var x = 5 : int;
+    print(x);
+  }
+
+  print(x);
+  {              
+    var y = 20 : int;
     print(y);
+  }
+  print(y);
 }

@@ -140,9 +140,9 @@ class Parser:
 
     def p_error(self, t):
         if t != None:
-            self.reporter.report("Syntax error at '%s'" % t.value, t.lineno, "Parsing")
+            self.reporter.report("Syntax error at '%s'" % t.value, t.lineno, self.reporter.stage)
         else:
-            self.reporter.report("Found '%s'" % t, -1, "Parsing")
+            self.reporter.report("Found '%s'" % t, -1, self.reporter.stage)
     
     def __init__(self, reporter):
         

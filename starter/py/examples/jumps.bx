@@ -1,0 +1,20 @@
+// 0 1 2 3 4 1 2 4 5
+def main() {
+  var x = 0 : int;
+  while (x < 10) {
+    if (x == 5) {
+      break;
+    }
+    print(x);
+    x = x + 1;
+  }
+  var y = 0 : int;
+  while (y < 5) {
+    y = y + 1;
+    if (y == 3) {
+      continue;
+    }
+    print(y);
+  }
+
+}

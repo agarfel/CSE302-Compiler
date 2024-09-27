@@ -1,11 +1,10 @@
 #! /usr/bin/env python3
 from bxast import *
+boolOp= {'<': 'jl','>': 'jnl','<=': 'jle','>=': 'jnle','==': 'jz','!=': 'jnz'}
 
 class Scope:
-    def __init__(self, start):
-        self.variables = dict()
-        self.start = start
-    
+    def __init__(self):
+        self.variables = dict()    
     
     def declare(self, name : str, register : str):
         self._variables[name] = register
@@ -17,26 +16,30 @@ class ToTac:
         self.label_counter = 0
         self.body = []
         self.scopes = []
+        self.whiles = []
         self.reporter = reporter
+
+    def emit(self, opcode, args, result):
+        self.body.append({"opcode": opcode, "args": args, "result": result})
 
     def getVar_register(self, name):
         for scope in reversed(self.scopes):
             if name in scope.variables.keys():
                 return scope.variables[name]
-        self._reporter.report(f"Undefined variable {name}", -1, 'Transforming AST to TAC')
+        self.reporter.report(f"Undefined variable {name}", -1, self.reporter.stage)
 
     def processBlock(self, p : Block):
         #TO DO
         if p == None:
-            self.reporter.report("Block is empty", p.line, "Transforming AST to TAC")
+            self.reporter.report("Block is empty", p.line, self.reporter.stage)
             return
-        s = self.label_counter
-        self.scopes.append(Scope(s))
-        self.body.append({"opcode": "label", "args": ['%.s{s}:'], "result": None})
-        self.label_counter += 1
+        # s = self.label_counter
+        self.scopes.append(Scope())
+        # self.emit("label", ['%.s{s}:'],None)
+        # self.label_counter += 1
         for statement in p.statements:
             self.processStatement(statement)
-        self.body.append({"opcode": "label", "args": ['%.e{s}:'], "result": None})
+        # self.emit("label", ['%.e{s}:'], None)
 
         self.scopes.pop()
 
@@ -46,42 +49,56 @@ class ToTac:
             tmp = self.tmp_counter
             self.tmp_counter += 1
             self.scopes[-1].variables[s.name] = f'%{tmp}'
-            self.body.append({"opcode": "copy", "args": [value], "result": f'%{tmp}'})
+            self.emit("copy", [value], f'%{tmp}')
 
         elif type(s) == Assign:
             value = self.processExpression(s.value)
             var = self.getVar_register(s.name)
-            self.body.append({"opcode": "copy", "args": [value], "result": var})
+            self.emit("copy", [value], var)
 
         elif type(s) == Print:
             value = self.processExpression(s.value)
-            self.body.append({"opcode": "print", "args": [value], "result": None})
+            self.emit("print", [value], None)
 
         elif type(s) == Block:
             self.processBlock(s)
 
         elif type(s) == Ifelse:
-            condition = self.processExpression(s.condition)
-            self.body.append({"opcode": "CMP", "args": [condition], "result": None})
-            self.body.append({"opcode": "jump", "args": [self.label_counter], "result": None})
-            self.processBlock(s.ifbranch)
-            self.body.append({"opcode": "jump", "args": [self.label_counter], "result": None})
-            self.processBlock(s.elsebranch)
+            lab_true = self.label_counter
+            lab_false = self.label_counter + 1
+            lab_over =  self.label_counter +2
+            self.label_counter += 3
+
+            condition = self.processBool(s.condition, lab_true, lab_false)
+            self.emit("label", [lab_true], None)
+            self.processStatement(s.ifbranch)
+            self.emit("jmp", [lab_over], None)
+            self.emit("label", [lab_false], None)
+            self.processStatement(s.elsebranch)
+            self.emit("label", [lab_over], None)
 
         
         elif type(s) == While:
-            condition = self.processExpression(s.condition)
-            self.body.append({"opcode": "CMP", "args": [condition], "result": None})
-            self.body.append({"opcode": "jump", "args": [self.label_counter],"result":  None})
-            self.processBlock(s.block)    
+            lab_head = self.label_counter
+            lab_body = self.label_counter + 1
+            lab_end =  self.label_counter +2
+            self.label_counter += 3
+            self.whiles.append((lab_head, lab_end))
+            self.emit("label", [lab_head], None)
+            condition = self.processBool(s.condition, lab_body, lab_end)
+            self.emit("label", [lab_body], None)
+            self.processStatement(s.block)    
+            self.emit("jmp", [lab_head], None)
+            self.emit("label", [lab_end], None)
+            self.whiles.pop()
 
         elif type(s) == Jump:
             if s.ty == 'break':
-                self.body.append({"opcode": "JUMP", "args": [f'e{self.scopes[-1].start}'], "result": None})
+                self.emit("jmp", [self.whiles[-1][1]], None)
             elif s.ty == 'continue':
-                self.body.append({"opcode": "JUMP", "args": [f's{self.scopes[-1].start}'], "result": None})
+                self.emit("jmp", [self.whiles[-1][0]], None)
             else:
-                self.reporter.report("Unidentified jump: {s.ty}", s.line, "Transforming AST to TAC")
+                self.reporter.report("Unidentified jump: {s.ty}", s.line, self.reporter.stage)
 
     def processExpression(self, e : Expr):
         if type(e) == VarExpr:
@@ -91,7 +108,7 @@ class ToTac:
         elif type(e) == NumberExpr:
             tmp = self.tmp_counter
             self.tmp_counter += 1
-            self.body.append({"opcode": "const", "args": [e.value], "result": f'%{tmp}'})
+            self.emit("const", [e.value], f'%{tmp}')
             return f'%{tmp}'
 
         elif type(e) == BinOpExpr:
@@ -100,7 +117,7 @@ class ToTac:
             tmp = self.tmp_counter
             self.tmp_counter += 1
             operation = self.getBinOp(e.operation)
-            self.body.append({"opcode": operation, "args": [left, right], "result": f'%{tmp}'})
+            self.emit(operation, [left, right], f'%{tmp}')
             return f'%{tmp}'
 
 
@@ -109,7 +126,7 @@ class ToTac:
             operation = self.getUnOp(e.operation)
             tmp = self.tmp_counter
             self.tmp_counter += 1
-            self.body.append({"opcode": operation, "args": [value], "result": f'%{tmp}'})
+            self.emit(operation, [value], f'%{tmp}')
             return f'%{tmp}'
 
 
@@ -120,28 +137,54 @@ class ToTac:
         elif op == '*': return "mul"
         elif op == '/': return "div"
         elif op == '%': return "mod"
-        elif op == '&': return "band"
-        elif op == '|': return "bor"
+        elif op == '&': return "and"
+        elif op == '|': return "or"
         elif op == '^': return "xor"
         elif op == '<<': return "shl"
         elif op == '>>': return "shr"
-        #TO DO
-        elif op == '==': return "eq"
-        elif op == '!=': return "neq"
-        elif op == '<': return "lt"
-        elif op == '<=': return "lteq"
-        elif op == '>': return "gt"
-        elif op == '>=': return "gteq"
-        elif op == '&&': return "and"
-        elif op == '||': return "or"
+        # elif op == '==': return "eq"
+        # elif op == '!=': return "neq"
+        # elif op == '<': return "lt"
+        # elif op == '<=': return "lteq"
+        # elif op == '>': return "gt"
+        # elif op == '>=': return "gteq"
+        # elif op == '&&': return "and"
+        # elif op == '||': return "or"
 
 
     def getUnOp(self, op):
         if op == '-': return "neg"
-        elif op == '~': return "bnot"
-        #TO DO
-        elif op == '!': return "not"
+        elif op == '~': return "not"
+        # elif op == '!': return "not"
 
+    def processBool(self, e, lab_true, lab_false):
+        if type(e) == Bool:
+            if e.value == 'true':
+                self.emit('jmp', [lab_true], None)
+            elif e.value == 'false':
+                self.emit('jmp', [lab_false], None)
+        else:
+            if e.operation in boolOp.keys():
+                t1 = self.processExpression(e.left)
+                t2 = self.processExpression(e.right)
+                self.emit('cmpq', [t1, t2], None)
+                self.emit(boolOp[e.operation], [lab_true], None)
+                self.emit('jmp', [lab_false], None)
+            
+            elif e.operation =='!':
+                self.processBool(e.value, lab_false, lab_true)
+            
+            elif e.operation == '&&':
+                self.processBool(e.left, self.label_counter, lab_false)
+                self.emit('label', [self.label_counter], None)
+                self.label_counter += 1
+                self.processBool(e.right, lab_true, lab_false)
+
+            elif e.operation == '||':
+                self.processBool(e.left, lab_true, self.label_counter)
+                self.emit('label', [self.label_counter], None)
+                self.label_counter += 1
+                self.processBool(e.right, lab_true, lab_false)
 
     def getData(self):
         data = [{"proc": "@main", "body" : self.body}]

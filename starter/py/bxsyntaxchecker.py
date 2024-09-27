@@ -17,7 +17,7 @@ class Scope:
 class SyntaxChecker:
     def __init__(self, reporter : Reporter):
         self._scopes = []
-        self._reporter = reporter
+        self.reporter = reporter
 
     def is_declared(self, name):
         for scope in reversed(self._scopes):
@@ -26,7 +26,7 @@ class SyntaxChecker:
 
     def for_program(self, p: Block):
         if p == None:
-            self._reporter.report("Program is empty", "-1", "Syntax Check")
+            self.reporter.report("Program is empty", "-1", self.reporter.stage)
             return
         self.for_block(p)
 
@@ -39,7 +39,7 @@ class SyntaxChecker:
     def for_expression(self, e: Expr):
         if type(e) == VarExpr:
             if not self.is_declared(e.name):
-                self._reporter.report(f'Undeclared variable: {e.name}', e.line, "Syntax Check")
+                self.reporter.report(f'Undeclared variable: {e.name}', e.line, self.reporter.stage)
 
         elif type(e) == BinOpExpr:
             self.for_expression(e.left)
@@ -50,19 +50,19 @@ class SyntaxChecker:
         
         elif type(e) == NumberExpr:
             if not -(2**63) <= int(e.value) < 2**63:
-                self._reporter.report("Invalid Integer (too large)", e.line, "Syntax Check")
+                self.reporter.report("Invalid Integer (too large)", e.line, self.reporter.stage)
 
         elif type(e) == Bool:
             if e.value not in ['true','false']:
-                self._reporter.report(f"Invalid Boolean: {e.value}", e.line, "Syntax Check")
+                self.reporter.report(f"Invalid Boolean: {e.value}", e.line, self.reporter.stage)
         else:
-            self._reporter.report(f'Unidentified expression: {e}', e.line, "Syntax Check")
+            self.reporter.report(f'Unidentified expression: {e}', e.line, self.reporter.stage)
 
         
     def for_statement(self, s: Statement):
         if type(s) == VarDecl:
             if s.name in self._scopes[-1]._variables:
-                self._reporter.report(f'Variable declared twice: {s.name}', s.line, "Syntax Check")
+                self.reporter.report(f'Variable declared twice: {s.name}', s.line, self.reporter.stage)
             else:
                 self._scopes[-1].declare(s.name)
 
@@ -70,7 +70,7 @@ class SyntaxChecker:
 
         elif type(s) == Assign:
             if not self.is_declared(s.name):
-                self._reporter.report(f'Undeclared variable: {s.name}', s.line, "Syntax Check")
+                self.reporter.report(f'Undeclared variable: {s.name}', s.line, self.reporter.stage)
             self.for_expression(s.value)
         
         elif type(s) == Print:
@@ -81,14 +81,14 @@ class SyntaxChecker:
 
         elif type(s) == Ifelse:
             self.for_expression(s.condition)
-            self.for_block(s.ifbranch)
-            self.for_block(s.elsebranch)
+            self.for_statement(s.ifbranch)
+            self.for_statement(s.elsebranch)               
 
         elif type(s) == While:
             self.for_expression(s.condition)
-            self.for_block(s.block)
+            self.for_statement(s.block)
 
         elif type(s) == Jump:
             pass
         else:
-            self._reporter.report(f'Unidentified statement: {s}', s.line, "Syntax Check")
+            self.reporter.report(f'Unidentified statement: {s}', s.line, self.reporter.stage)

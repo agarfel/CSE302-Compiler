@@ -14,8 +14,6 @@ for bx_file in examples/*.bx; do
         continue  # Skip the remaining commands and move to the next file
     fi
 
-
-    python3 tac2x64.py "source.tac.json"
     gcc -o "source.exe" "source.s"
     ./"source.exe"
     rm "source.exe"

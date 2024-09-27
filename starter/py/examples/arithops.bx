@@ -1,8 +1,28 @@
+// 15 5 50 2 0 5 20 0 15 -11 -10
+
 def main() {
-  var x = 42 : int;
-  var y = x >> 1 : int;
-  print(x + y);
-  print(x - y);
-  var z = x * 3 + y : int;
-  print(z % x);
+  var x = 10 : int;
+  var y = 5 : int;
+  var result = x + y : int;
+  print(result);
+  result = x - y;
+  print(result);
+  result = x * y;
+  print(result);
+  result = x / y;
+  print(result);
+  result = x % y;
+  print(result);
+  result = x >> 1;
+  print(result);
+  result = x << 1;
+  print(result);
+  result = x & y;
+  print(result);
+  result = x | y;
+  print(result);
+  result = ~x;
+  print(result);
+  result = -x;
+  print(result);
 }
