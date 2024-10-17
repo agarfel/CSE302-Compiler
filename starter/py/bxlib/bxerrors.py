@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 
+import sys
+
 class Reporter:
     def __init__(self):
         self.error_number = 0
@@ -12,23 +14,24 @@ class Reporter:
         self.error_number += 1
     
     def describe(self):
+        msg = ''
         if len(self.errors) != 0:
-            print("---------------------------------------------")
-            print("FILE:", self.filename)
-            print(f'Stopped compiling in {self.stage} due to errors')
+            msg += "---------------------------------------------\n"
+            msg += f'FILE: {self.filename}\n'
+            msg += f'Stopped compiling in {self.stage} due to errors'
             for error in self.errors:
                 if error[1] < 0:
-                    print("Error:", error[0], "during", error[2])
+                    msg += f'Error: {error[0]} during {error[2]}\n'
                 else:
-                    print("Error:", error[0], "on line:", error[1], "during", error[2])
+                    msg += f'Error: {error[0]} on line: {error[1]} during {error[2]}'
                 if error[1] > -1:
                     with open(self.filename, 'r') as file:
                         for i, line in enumerate(file, 1):  # Start counting from 1
                             if i == error[1]:
-                                print('\t', line.strip())
+                                msg += f'\t {line.strip()}\n'
 
-            print("---------------------------------------------")
-            print("TOTAL ERRORS: ", self.error_number)
-            print("---------------------------------------------")
-
+            msg += "---------------------------------------------\n"
+            msg += f'TOTAL ERRORS: {self.error_number}\n'
+            msg += '----------------------------------------------\n'
+            sys.exit(msg)
         

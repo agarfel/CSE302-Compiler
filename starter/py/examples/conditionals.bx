@@ -1,0 +1,21 @@
+def main() {
+  var x = 10 : int;
+  if (x < 5) {
+    print(1);
+  }
+  if (x <= 5) {
+    print(2);
+  }
+    if (x == 5) {
+    print(3);
+  }
+  if (x != 5) {
+    print(4);
+  }
+    if (x >= 5) {
+    print(5);
+  }
+  if (x > 5) {
+    print(6);
+  }
+}

@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-from bxast import *
-from bxerrors import Reporter
+from bxlib.bxast import *
+from bxlib.bxerrors import Reporter
 
 class Scope:
     def __init__(self, ):

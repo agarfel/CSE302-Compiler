@@ -1,5 +1,4 @@
 def main() {
-    {}
     var x = 1 : int;
     if (false) {
         print(x);

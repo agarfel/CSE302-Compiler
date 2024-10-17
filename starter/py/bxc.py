@@ -4,14 +4,15 @@
 import sys
 import json
 
-from bxparser import Parser
-from bxlexer import Lexer
-from bxerrors import Reporter
-from bxast import *
-from bxsyntaxchecker import *
-from bxtac import *
-from bxtypechecker import *
-from bx64 import *
+from bxlib.bxparser import Parser
+from bxlib.bxlexer import Lexer
+from bxlib.bxerrors import Reporter
+from bxlib.bxast import *
+from bxlib.bxsyntaxchecker import *
+from bxlib.bxtac import *
+from bxlib.bxtypechecker import *
+from bxlib.bx64 import *
+from bxlib.bxcfg import *
 
 
 def read_file_to_string(file_path):
@@ -23,7 +24,7 @@ def read_file_to_string(file_path):
         return f"Error: The file '{file_path}' does not exist."
 
 
-def run_compiler(reporter, content, debug=False):
+def run_compiler(reporter, content, basename, debug=False):
     lexer = Lexer(reporter)
     parser = Parser(reporter)
     reporter.stage = 'Parsing'
@@ -55,12 +56,30 @@ def run_compiler(reporter, content, debug=False):
     if reporter.error_number != 0:
         return
     data = totac.getData()
-    with open('source.tac.json', 'w') as f:
+
+    with open(f'{basename}.tac.json', 'w') as f:
+        json.dump(data, f)
+
+    reporter.stage = "CFG"
+    # print(data)
+
+    cfg = CFG(reporter)
+    cfg.bbinference(data[0]['body'])
+    cfg.build_graph()
+    # print()
+    # cfg.print_blocks()
+    cfg.coalesce()
+    cfg.unreachable()
+    cfg.jump_threadingC()
+    # cfg.print_blocks()
+    data = cfg.serialise()
+
+    with open(f'{basename}.opt.tac.json', 'w') as f:
         json.dump(data, f)
 
     reporter.stage = "TAC to x64"
     tox64 = Tox64(reporter)
-    tox64.compile_tac('source.tac.json')
+    tox64.compile_tac(f'{basename}.opt.tac.json')
     
 
 
@@ -73,7 +92,8 @@ if __name__ == "__main__":
         if content.startswith("Error:"):
             print(content)
         else:
+            source = file_path[:-3]
             reporter = Reporter()
             reporter.filename = file_path
-            run_compiler(reporter, content, False)
+            run_compiler(reporter, content, source, False)
             reporter.describe()

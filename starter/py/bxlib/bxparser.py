@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
 import ply.yacc as yacc
-from bxlexer import Lexer
-from bxast import *
+from bxlib.bxlexer import Lexer
+from bxlib.bxast import *
 
 
 #--------- Parser ---------#
@@ -66,7 +66,7 @@ class Parser:
                     | IF LPAREN expr RPAREN block ELSE block
                     | IF LPAREN expr RPAREN block ELSE ifelse
                      """
-        if len(p) != 7:
+        if len(p) != 8:
                 p[0] = Ifelse(condition=p[3], ifbranch=p[5], elsebranch=Block(statements=[], line=p.lineno(1)), line=p.lineno(1))
         else:
             p[0] = Ifelse(condition=p[3], ifbranch=p[5], elsebranch=p[7], line=p.lineno(1))

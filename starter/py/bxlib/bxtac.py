@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
-from bxast import *
-boolOp= {'<': 'jl','>': 'jnl','<=': 'jle','>=': 'jnle','==': 'jz','!=': 'jnz'}
+from bxlib.bxast import *
+
+boolOp= {'<': 'jl','>': 'jg','<=': 'jle','>=': 'jge','==': 'jz','!=': 'jnz'}
 
 class Scope:
     def __init__(self):
@@ -94,9 +95,17 @@ class ToTac:
 
         elif type(s) == Jump:
             if s.ty == 'break':
-                self.emit("jmp", [self.whiles[-1][1]], None)
+                try:
+                    self.emit("jmp", [self.whiles[-1][1]], None)
+                except:
+                    self.reporter.report("Break found outside a while loop", s.line, self.reporter.stage)
+ 
             elif s.ty == 'continue':
-                self.emit("jmp", [self.whiles[-1][0]], None)
+                try:
+                    self.emit("jmp", [self.whiles[-1][0]], None)
+                except:
+                    self.reporter.report("Continue found outside a while loop", s.line, self.reporter.stage)
+
             else:
                 self.reporter.report("Unidentified jump: {s.ty}", s.line, self.reporter.stage)
 

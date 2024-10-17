@@ -32,7 +32,7 @@ binops = {'add': 'addq',
 unops = {'neg': 'negq',
          'not': 'notq'}
 
-jumps= ['jl', 'jnl', 'jle', 'jnle', 'jz', 'jnz','jmp']
+jumps= ['jl', 'jg', 'jle', 'jge', 'jz', 'jnz','jmp']
 
 class Tox64:
     def __init__(self, reporter):
@@ -77,6 +77,11 @@ class Tox64:
                 self.process_label(args)
             elif opcode == 'cmpq':
                 self.process_boolop(args)
+            elif opcode =='ret':
+                self.asm += [f'movq %rbp, %rsp',
+                    f'popq %rbp',
+                    f'xorq %rax, %rax',         #sets rax to 0
+                    f'retq']
             else:
                 self.reporter.report(f'Processing Intruction: unknown opcode {opcode}', -2, self.reporter.stage)
         
@@ -160,7 +165,9 @@ class Tox64:
 
 
     def compile_tac(self, file):
-        if file.endswith('.tac.json'):
+        if file.endswith('.opt.tac.json'):
+            rname = file[:-13]
+        elif file.endswith('.tac.json'):
             rname = file[:-9]
         elif file.endswith('.json'):
             rname = file[:-5]
@@ -180,6 +187,6 @@ class Tox64:
                     f'\t.text',
                     f'\t.globl main',
                     f'main:']
-        sname = rname + '.s'
+        sname = rname + '.x64-linux.s'
         with open(sname, 'w') as afp:
             print(*asm, file=afp, sep='\n')
