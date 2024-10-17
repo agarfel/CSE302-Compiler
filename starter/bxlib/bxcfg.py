@@ -35,6 +35,31 @@ class CFG:
         self.label_counter += 1
         return f'b{self.label_counter - 1}'
 
+    def optimise(self):
+        optimised = True
+        cycles = 0
+        count = 0
+        while optimised and cycles < 10:
+            optimised = False
+            tmp = self.useless()
+            count += tmp
+            if tmp != 0: optimised = True
+            tmp = self.coalesce()
+            count += tmp
+            if tmp != 0: optimised = True
+            tmp = self.unreachable()
+            count += tmp
+            if tmp != 0: optimised = True
+            count += tmp
+            if tmp != 0: optimised = True
+            tmp = self.jump_threadingC()
+            count += tmp
+            if tmp != 0: optimised = True
+            tmp = self.coalesce()
+            count += tmp
+            cycles += 1
+        return count
+
     def bbinference(self, tac):
         first = ''
         if len(tac) == 0 or tac[0]['opcode'] != 'label':
@@ -90,7 +115,7 @@ class CFG:
                 self.blocks[tmp].prev.append(label)
                 self.edges.append((label, tmp, condition))
                 i += 1
-        # print(self.edges)
+
 
     def serialise(self):
         current = 'initial'
@@ -123,71 +148,110 @@ class CFG:
                     break
         return [{"proc": "@main", "body" : result}]
     
+# ----------------  Optimisation Functions  ------------------
+
+
     def coalesce(self):
-        count = 0
         # self.print_blocks()
+        count = 0
         found = True
         while found:
             found = False
-            for b1 in self.blocks.values():
-                if len(b1.next) == 1 and b1.next[0] != 'initial':
-                    try:
-                        b2 = self.blocks[b1.next[0]]
-                    except:
-                        self.reporter.report(f'Trying to access a block that is not in dictionary',-1, 'Optimisation: Coalesce')
-    
-                    if len(b2.prev) == 1 and b2.prev[0] == b1.label:
-                        found = True
-                        count +=1
-                        # print('want:', b1.next, b2.prev)
-                        content = b1.content[:-1] + b2.content
-                        # print('b1', b1.content)
-                        # print('b2',b2.content)
-                        # print()
-                        # print('b',content)
-                        label = b1.label
-                        b = Block(content, label)
-                        b.next = b2.next
-                        b.prev = b1.prev
-                        # print(f'Coalescing {b1.label} and {b2.label}')
-                        del self.blocks[b2.label]
-                        del self.blocks[b1.label]
-                        self.blocks[b1.label] = b
+            for l1, b1 in self.blocks.items():
+                if len(b1.next) != 1:
+                    continue
+                l2 = b1.next[0]
+                b2 = self.blocks[l2]
+                if len(b2.prev) != 1 or l2 == 'initial':
+                    continue
+                # print(f'Attempting to coalesce blocks {l1} and {l2}')
+                self.aux_coalesce(l1,b1,l2,b2)
+                found = True
+                count += 1
+                break
+        return count
+                
+    def aux_coalesce(self,l1,b1,l2,b2):
+        #Change next
+        for l in b2.next:
+            try:
+                self.blocks[l].prev.remove(l2)
+            except:
+                # print(f'Issue when coalescing blocks {l1} and {l2}.')
+                self.reporter.report(f'Trying to remove node {l2} from list ({self.blocks[l].prev}) of previous blocks of {l}', -1,  'Optimisation: coalescing')
+            self.blocks[l].prev.append(l1)
+        
+            # Change label
+            to_remove = [edge for edge in self.edges if edge[0] == l2 and edge[1] == l]
+            for edge in to_remove:
+                self.edges.append((l1, l, edge[2]))
+                self.edges.remove(edge)
 
-                        # Modify edges
 
-                        self.edges.remove((b1.label, b2.label, True))
+        b1.next = b2.next
 
-                        break
-        # print(f'Coalesced {count} blocks')
+        # Change content
+        b1.content = b1.content[:-1] + b2.content
+        del self.blocks[l2]
 
     def unreachable(self):
         count = 0
-        not_visited = set([b for b in self.blocks.keys()])
+        not_visited = set([str(b) for b in self.blocks.keys()])
         stack = ['initial']
+
         while stack != []:
             node = stack.pop()
-            try:
-                not_visited.remove(node)
-            except:
-                self.reporter.report(f'Trying to remove node that is not in list', -1, 'Optimisation: Unreachable')
-            stack.extend(n for n in self.blocks[node].next if n in not_visited)
+            not_visited.remove(node)
+            stack.extend(str(n) for n in self.blocks[node].next if (str(n) in not_visited and str(n) not in stack))
         
         for l in not_visited:
-            # print(f'Removing {b} unreachable')
             count += 1
             del self.blocks[l]
 
-
             # Modify Edges
-
             removable_edges = []
             for edge in self.edges:
                 if edge[0] == l or edge[1] == l:
                     removable_edges.append(edge)
             for edge in removable_edges:
                 self.edges.remove(edge)
-        # print(f'Removed {count} unreached blocks')
+
+        return count
+
+    def useless(self):  # Remove Blocks consisting of only a label and an unconditional jump
+        found = True
+        count = 0
+        while found:
+            found = False
+            for label, block in self.blocks.items():
+                if len(block.content) == 2 and block.next != [] and label != 'initial':
+                    n = self.blocks[label].next[0]
+                    for prev in self.blocks[label].prev:
+                        self.replace_label(self.blocks[prev], label, n)
+
+                        # Modify Edges
+                        tmp = tuple()
+                        for edge in self.edges:
+                            if edge[0] == prev and edge[1] == label:
+                                tmp = edge
+                                break
+                        self.edges.remove(tmp)
+                        self.edges.append((tmp[0],n,tmp[2]))
+
+                    self.blocks[n].prev.remove(label)
+                    self.blocks[n].prev.extend(block.prev)
+
+                    found = True
+                    count += 1
+                    del self.blocks[label]
+                    break
+        return count
+
+    def replace_label(self, block, old_l, new_l):
+        for instruction in block.content:
+            if instruction['opcode'][0] == 'j' and str(instruction['args'][0]) == old_l:
+                instruction['args'][0] = new_l
+        block.next = [l if old_l != l else new_l for l in block.next]
 
     def thread(self, l1, l2):
         for edge in self.edges:
@@ -197,59 +261,33 @@ class CFG:
                 c2 = edge[2]
                 l3 = edge[1]
 
-        if c1[0]==c2[0] and c1[2]==c2[2]:
-            if type(c1[2])==int:
-                const = c1[2]
-                var = c1[0]
-            elif type(c1[0])== int:
-                const = c1[0]
-                var = c1[2]
-            else:
-                # print(("HELP1"))
-                return
-        elif c1[0]==c2[2] and c1[2]==c2[0]:
-            if type(c1[2])==int:
-                const = c1[2]
-                var = c1[0]
-            elif type(c1[0])== int:
-                const = c1[0]
-                var = c1[2]
-            else:
-                # print("HELP2")
-                return
-        else:
-            # print("HELP3:", c1, c2)
-            return
-        # print("ALMOST THERE:", c1, c2)
-        if c2[1] in compatible_jmps[c1[1]][0]:      # Condition always true (always take conditional jump)
-            l4 = self.blocks[l2].content[-1]['args'][0]
-            del self.blocks[l2].content[-2]
-            # print(l1,l2,l3,l4)
-            self.blocks[l2].content[-1]['args']=l3
-            self.blocks[l2].next = [l3]
-            self.blocks[l4].prev.remove(l2)
+        if (c1[0]==c2[0] and c1[2]==c2[2]) or ( c1[0]==c2[2] and c1[2]==c2[0] ):
+                
+            if c2[1] in compatible_jmps[c1[1]][0]:      # Condition always true (always take conditional jump)
+                l4 = self.blocks[l2].content[-1]['args'][0]
+                del self.blocks[l2].content[-2]
+                self.blocks[l2].content[-1]['args']=l3
+                self.blocks[l2].next = [l3]
+                self.blocks[l4].prev.remove(l2)
 
-            # modify edges
-            self.edges.remove((l2,l4,True))
-            self.edges.remove((l2,l3,c2))
-            self.edges.append((l2,l3,True))
-            # print("THREADED A JUMP!!!")
-            return True
+                # modify edges
+                self.edges.remove((l2,l4,True))
+                self.edges.remove((l2,l3,c2))
+                self.edges.append((l2,l3,True))
+                return True
 
 
+            if c2[1] in compatible_jmps[c1[1]][1]:  # Condition never true (never take conditional jump)
+                l4 = self.blocks[l2].content[-1]['args'][0]
+                # print(l1,l2,l3,l4)
 
-        if c2[1] in compatible_jmps[c1[1]][1]:  # Condition never true (never take conditional jump)
-            l4 = self.blocks[l2].content[-1]['args'][0]
-            # print(l1,l2,l3,l4)
+                del self.blocks[l2].content[-2]
+                self.blocks[l2].next = [l4]
+                self.blocks[l3].prev.remove(l2)
 
-            del self.blocks[l2].content[-2]
-            self.blocks[l2].next = [l4]
-            self.blocks[l3].prev.remove(l2)
-
-            # modify edges
-            self.edges.remove((l2,l3,c2))
-            # print("THREADED A JUMP!!!")
-            return True
+                # modify edges
+                self.edges.remove((l2,l3,c2))
+                return True
 
     def jump_threadingC(self):
         found = True
@@ -257,44 +295,62 @@ class CFG:
         while found:
             found = False
             possible = self.find_possible_threading()
-            # print(possible)
             if not possible:
                 continue
-            # print('HELP')
             if self.thread(possible[0], possible[1]):
+                count += 1
                 found = True
-            
-        # print(f'Threaded {count} conditional jumps')
+        return count
 
     def find_possible_threading(self):
-        # print("HELP:", self.edges)
+        # Identify potential blocks for threading
         for l1, b1 in self.blocks.items():
-            # print("CRY:", l1)
             for edge in self.edges:
-                # print("CRY MORE:", edge)
-                if edge[0] != l1 or edge[2]==True:
-                    continue
-                # print("CRY1")
-                if not (type(edge[2][0]) == int or type(edge[2][2]) == int):
-                    continue
-                # print("CRY2")
-                if type(edge[2][0])==int: var = edge[2][2]
-                else: var = edge[2][0]
+                if edge[0] != l1 or edge[2]==True: continue
+
                 l2 = edge[1]
                 b2 = self.blocks[l2]
-                # print("CRY3")
-                if len(b2.prev) != 1 or len(b2.next)!=2:
-                    continue
-                # print("CRY4")
-                if check_no_change(b2,var):
+
+                if len(b2.prev) != 1 or len(b2.next)!=2: continue
+                
+                if check_no_change(b2,edge[2][0]) and check_no_change(b2, edge[2][2]):
                     return (l1, l2)
         return
+
+# ----------------  Debugging Functions  ------------------
 
     def print_blocks(self):
         for block in self.blocks.values():
             print(block)
             print()
 
+    def check_blocks(self):
+        defined = set(self.blocks.keys())
+        called = set()
+        for b in self.blocks.values():
+            called = called.union(set(b.next))
+            called = called.union(set(b.prev))
+        return called == defined
+    
+    def check_edges(self):
+        for edge in self.edges:
+            if edge[1] not in self.blocks[edge[0]].next or edge[0] not in self.blocks[edge[1]].prev:
+                print("NOT GOOD:", edge)
+                return False
+
+        for label, block in self.blocks.items():
+            for n in block.next:
+                found = False
+                for edge in self.edges:
+                    if edge[0]==label and edge[1]==n:
+                        found = True
+                if not found:
+                    print("NOT GOOD:", label, n)
+                    return False
+        print("ALL EDGES GOOD")
+
+
+# ----------------  Helper Functions  ------------------
 
 def get_condition(block, i):
     if block.content[-i]['opcode'] == 'jmp': return True
@@ -307,60 +363,22 @@ def get_condition(block, i):
         self.reporter.report(f'Cannot find a condition for a jump', -1,  'Building Graph: getting condition')
         return
     i+=1
-    # print("Getting condition:",var1, var2,i)
-    # print(block.content)
     while i != len(block.content):
         if is_const(block, i):
-            # print("Is const", var1, var2)
             if var1 == block.content[-i]['result']:
                 var1 = block.content[-i]['args'][0]
                 break
             elif var2 == block.content[-i]['result']:
                 var2 = block.content[-i]['args'][0]
                 break
-
         i+=1
-
     return (var1, comparison, var2)
 
-def is_const(block,i):
+def is_const(block,i):  # Check if the temporary is an int
     return block.content[-i]['opcode'] == 'const' and type(block.content[-i]['args'][0])==int
 
-def check_no_change(block, var):
+def check_no_change(block, var):    # Check a temporary is not modified in a block
     for instruction in block.content:
         if instruction['result'] == var:
             return False
     return True
-
-
-
-"""
-OLD CONDITIONAL JUMP THREADING:
-
-
-
-
-        for b1 in self.blocks.values():
-            if b1.content[-2]['opcode'] in ['jl','jnl','jle','jnle','jz','jnz']:
-                condition_var = b1.content[-3]['args'][0]
-            else:
-                continue
-            for l2 in b1.next:
-                if l2 == 'initial':
-                    continue
-                try:
-                    b2 = self.blocks[l2]
-                except:
-                    self.reporter.report(f'Trying to access a block that is not in dictionary', -1,  'Optimisation: Conditional Jump Threading')
-                print(l2)
-                if len(b2.prev) == 1 and b2.prev[0] == b1.label and b2.content[-2]['opcode'] in compatible_jmps[b1.content[-2]['opcode']]:
-                    if not any(inst['opcode'] == 'copy' and inst['args'][0] == condition_var for inst in b2.content[:-2]):
-
-                        print(f"Conditional jump threading from {b1.label} to {b2.label}")
-
-                        found = True
-                        count += 1
-                        break
-                if found: break
-            if found: break
-"""

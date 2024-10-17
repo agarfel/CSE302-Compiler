@@ -39,7 +39,7 @@ for bx_file in examples/*.bx; do
     rm "$base_name.exe"
 
     # Compare the actual output to the expected output
-    python3 ../../solution/bxc.py "$bx_file"
+    python3 ../solution/bxc.py "$bx_file"
 
     # Run the remaining commands
     gcc -o "$base_name.exe" "$base_name.s"
