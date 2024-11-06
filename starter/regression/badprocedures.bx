@@ -1,0 +1,27 @@
+var y = 1, z = 2 : int;
+var a = plus2(1) : int ;
+
+def main() {
+  var x = 10 : int;
+  plus(x);
+  plus3(x);
+  var a = plusxy(x) : int;
+  var a = plus1(x) : int;
+
+}
+
+def plus1 (x : int) {
+    return ;
+}
+
+def plus2 (x : int) : int {
+    return (x+2);
+}
+
+def plus3 (x : int){
+    return (x+3);
+}
+
+def plusxy () : int{
+    return ;
+}

@@ -1,4 +1,5 @@
 // a simple line comment
 def main() {
   print(42);
+  return;
 }

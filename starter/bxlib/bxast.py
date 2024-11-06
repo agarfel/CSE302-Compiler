@@ -9,9 +9,24 @@ class AST(abc.ABC):
     pass
 
 @dc.dataclass
-class Expr(AST):
+class Decl(AST):
     line: int
-    ty : str
+    
+@dc.dataclass
+class Program(AST):
+    line: int
+    declarations: list[Decl]
+    
+@dc.dataclass   
+class Ty(AST):
+    line: int
+    ty: str
+
+@dc.dataclass
+class Param(AST):
+    line: int
+    name: list[str]
+    ty: Ty
 
 @dc.dataclass
 class Statement(AST):
@@ -20,6 +35,18 @@ class Statement(AST):
 @dc.dataclass
 class Block(Statement):
     statements : list[Statement]
+
+@dc.dataclass
+class ProcDecl(Decl):
+    name: str
+    block: Block
+    args: [Param]
+    return_ty : Ty
+
+@dc.dataclass
+class Expr(AST):
+    line: int
+    ty : Ty
 
 @dc.dataclass
 class VarExpr(Expr):
@@ -45,10 +72,16 @@ class Bool(Expr):
     value: str
 
 @dc.dataclass
-class VarDecl(Statement):
+class VarInit(AST):
     name: str
-    ty: str
     value: Expr
+    line: int
+
+
+@dc.dataclass
+class VarDecl(Statement):
+    var_l : list[VarInit]
+    ty: Ty
 
 @dc.dataclass
 class Assign(Statement):
@@ -56,7 +89,7 @@ class Assign(Statement):
     value: Expr
 
 @dc.dataclass
-class Print(Statement):
+class Eval(Statement):
     value: Expr
 
 @dc.dataclass
@@ -77,3 +110,12 @@ class While(Statement):
 @dc.dataclass
 class Jump(Statement):
     ty: str
+
+@dc.dataclass
+class Return(Statement):
+    value: Expr
+
+@dc.dataclass
+class ProcCall(Expr):
+    name: str
+    args: [Expr]

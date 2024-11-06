@@ -3,10 +3,12 @@
 import ply.lex as lex
 
 class Lexer:
-    reserved = {'print': 'PRINT',
+    reserved = {
+            #'print': 'PRINT',
             'def': 'DEF',
-            'main': 'MAIN',
+            #'main': 'MAIN',
             'int': 'INT',
+            'bool': 'BOOL',
             'var': 'VAR',
             'if': 'IF',
             'else': 'ELSE',
@@ -14,7 +16,9 @@ class Lexer:
             'break': 'BREAK',
             'continue': 'CONTINUE',
             'true': 'TRUE',
-            'false': 'FALSE'
+            'false': 'FALSE',
+            # 'void': 'VOID',
+            'return': 'RETURN'
             }
 
     tokens = (
@@ -37,6 +41,7 @@ class Lexer:
     'XOR',
     'SEMICOLON',
     'COLON',
+    'COMMA',
     'COMPLEMENT',
     'EQUALEQUAL',
     'NOTEQUAL',
@@ -66,6 +71,7 @@ class Lexer:
     t_XOR = r'\^'
     t_SEMICOLON = r'\;'
     t_COLON = r':'
+    t_COMMA = ','
     t_COMPLEMENT = r'~'
     t_EQUALEQUAL = r'\=\='
     t_NOTEQUAL = r'!\='

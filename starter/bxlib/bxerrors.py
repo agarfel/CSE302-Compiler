@@ -18,12 +18,12 @@ class Reporter:
         if len(self.errors) != 0:
             msg += "---------------------------------------------\n"
             msg += f'FILE: {self.filename}\n'
-            msg += f'Stopped compiling in {self.stage} due to errors'
+            msg += f'Stopped compiling in {self.stage} due to errors\n'
             for error in self.errors:
                 if error[1] < 0:
                     msg += f'Error: {error[0]} during {error[2]}\n'
                 else:
-                    msg += f'Error: {error[0]} on line: {error[1]} during {error[2]}'
+                    msg += f'Error: {error[0]} on line: {error[1]} during {error[2]}\n'
                 if error[1] > -1:
                     with open(self.filename, 'r') as file:
                         for i, line in enumerate(file, 1):  # Start counting from 1

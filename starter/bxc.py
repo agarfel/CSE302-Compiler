@@ -8,7 +8,7 @@ from bxlib.bxparser import Parser
 from bxlib.bxlexer import Lexer
 from bxlib.bxerrors import Reporter
 from bxlib.bxast import *
-from bxlib.bxsyntaxchecker import *
+# from bxlib.bxsyntaxchecker import *
 from bxlib.bxtac import *
 from bxlib.bxtypechecker import *
 from bxlib.bx64 import *
@@ -37,16 +37,16 @@ def run_compiler(reporter, content, basename, debug=False):
         return
     if debug: print('Parsing successfull')
 
-    reporter.stage = 'Syntax Check'
-    syntax_checker = SyntaxChecker(reporter=reporter)
-    syntax_checker.for_program(ast)
-    if reporter.error_number != 0:
-        return
-    if debug: print('Syntax Check successfull')
+    # reporter.stage = 'Syntax Check'
+    # syntax_checker = SyntaxChecker(reporter=reporter)
+    # syntax_checker.for_program(ast)
+    # if reporter.error_number != 0:
+    #     return
+    # if debug: print('Syntax Check successfull')
 
     reporter.stage = 'Type Check'
     type_checker = TypeChecker(reporter=reporter)
-    type_checker.for_block(ast)
+    type_checker.for_program(ast)
     if reporter.error_number != 0:
         return
     if debug: print('Type Check successfull')
@@ -54,21 +54,21 @@ def run_compiler(reporter, content, basename, debug=False):
         print(ast)
 
     reporter.stage = "Transforming AST to TAC"
-    totac = ToTac(reporter)
-    totac.processBlock(ast)
+    totac = ToTac(type_checker.functions, reporter)
+    totac.processProgram(ast)
     if reporter.error_number != 0:
         return
     data = totac.getData()
     with open(f'{basename}.tac.json', 'w') as f:
         json.dump(data, f)
 
-    reporter.stage = "CFG"
-    cfg = CFG(reporter)
-    cfg.bbinference(data[0]['body'])
-    cfg.build_graph()
-    n = cfg.optimise()
-    # print(f'Performed {n} optimisations')
-    data = cfg.serialise()
+    # reporter.stage = "CFG"
+    # cfg = CFG(reporter)
+    # cfg.bbinference(data[0]['body'])
+    # cfg.build_graph()
+    # n = cfg.optimise()
+    # # print(f'Performed {n} optimisations')
+    # data = cfg.serialise()
     # print(data)
     with open(f'{basename}.opt.tac.json', 'w') as f:
         json.dump(data, f)

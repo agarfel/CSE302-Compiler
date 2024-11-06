@@ -18,4 +18,5 @@ def main() {
   if (x > 5) {
     print(6);
   }
+  return;
 }

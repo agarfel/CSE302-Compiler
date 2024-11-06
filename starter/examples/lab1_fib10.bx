@@ -38,4 +38,5 @@ def main() {
   x = y;
   y = z;
   print(x);
+  return;
 }

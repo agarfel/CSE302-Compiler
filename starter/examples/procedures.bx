@@ -1,0 +1,28 @@
+var y = 1, z = 2 : int;
+
+def plus3 (x : int) : int {
+    return (x+3);
+}
+
+def main() {
+  var x = 10 : int;
+  plus2(x);
+  print(plus3(x));
+  var a = plus2(x) : int;
+  test(1,2,3,4,5,6,7,8,9);
+  return;
+}
+
+def plus2 (x : int) : int {
+    return (x+2);
+}
+
+
+
+def plusxy () {
+    return ;
+}
+
+def test(a, b, c, d, e, f, g, h, i : int) : int {
+    return a+b+c+d+e+f+g+h+i;
+}

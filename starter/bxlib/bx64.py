@@ -32,33 +32,85 @@ binops = {'add': 'addq',
 unops = {'neg': 'negq',
          'not': 'notq'}
 
-jumps= ['jl', 'jg', 'jle', 'jge', 'jz', 'jnz','jmp']
+jumps= ['jl', 'jg', 'jle', 'jge', 'jz', 'jnz', 'jmp']
+
+callee_saved = {'rbx', 'rbp', 'r12', 'r13', 'r14', 'r15'}
+caller_saved = {'rax', 'rcx', 'rdx', 'rdi', 'rsi', 'r8', 'r9', 'r10', 'r11'}
+arg_registers = ['rdi','rsi','rdx','rcx', 'r8', 'r9']
 
 class Tox64:
     def __init__(self, reporter):
         self.temps = {}
         self.asm = []
+        self.body = []
+        self.inUse = set()
         self.reporter = reporter
 
     
     def lookup_tmp(self, tmp):
         if type(tmp) != str:
             self.reporter.report(f'Temporary {tmp} has an unexpected type ({type(tmp)}). Expected str', -2, self.reporter.stage)
-        if tmp[0] != '%':
-            self.reporter.report(f'Temporary {tmp} has an unexpected format. Should start with %', -2, self.reporter.stage)
-        if not tmp[1:].isnumeric():
-            self.reporter.report(f'Temporary {tmp} has an unexpected format. Expected %(int)', -2, self.reporter.stage)
+            return
+        if tmp[0] == '@':
+            return f'{tmp}(%rip)'
         if tmp  not in self.temps.keys():
             self.temps[tmp] = f'{-8 * (len(self.temps.keys()) + 1)}(%rbp)'
-
+        # print(self.temps)
         return self.temps[tmp]
 
-    def tac_to_asm(self, tac_instrs):
-        for instr in tac_instrs:
+    def tac_to_asm(self, tac):
+        for instr in tac:
+            if "var" in instr.keys():
+                name = instr['var']
+                value = instr['init']
+                self.process_globalVar(name, value)
+
+            elif "proc" in instr.keys():
+                self.process_procedure(instr)
+            else:
+                self.reporter.report(f'Unexpected instruction found: {instr.keys()}', -2, self.reporter.stage)
+                return
+
+    def process_procedure(self, instr):
+        name = instr['proc'][1:]
+        args = instr['args']
+        body = instr['body']
+        self.proc_tmps = 0
+        self.process_body(name, args, body)
+        stack_size = len(self.temps.keys())
+        if stack_size % 2 != 0: stack_size += 1 # 16 byte alignment for x64
+        self.asm += [
+            f'.text',
+            f'.globl {name}',
+            f'{name}:',
+            f'pushq %rbp',
+            f'movq %rsp, %rbp',
+            f'subq ${8*(stack_size)}, %rsp'
+        ]
+
+        for i in range(min(6, len(args))):
+            self.asm += [f'movq %{arg_registers[i]}, {self.lookup_tmp(args[i])}']
+
+        for i, arg in enumerate(args[6:]):
+            self.temps[arg] = f'{8 * (i + 1)}(%rbp)'
+        self.asm += self.body
+        self.body = []
+        self.temps = {}
+
+        self.asm += [
+            f'E_{name}:',
+            f'movq %rbp, %rsp',
+            f'popq %rbp',
+            f'retq'
+        ]
+
+
+    def process_body(self, proc_name, proc_args, proc_body):
+        for instr in proc_body:
             opcode = instr['opcode']
             args = instr['args']
             result = instr['result']
-
+            param_calls = 0
             if opcode == 'nop':
                 pass
             elif opcode == 'const':
@@ -69,8 +121,6 @@ class Tox64:
                 self.process_binop(opcode, args, result)
             elif opcode in unops:
                 self.process_unop(opcode, args, result)
-            elif opcode == 'print':
-                self.process_print(args)
             elif opcode in jumps:
                 self.process_jump(opcode, args)
             elif opcode == 'label':
@@ -78,23 +128,17 @@ class Tox64:
             elif opcode == 'cmpq':
                 self.process_boolop(args)
             elif opcode =='ret':
-                self.asm += [f'movq %rbp, %rsp',
-                    f'popq %rbp',
-                    f'xorq %rax, %rax',         #sets rax to 0
-                    f'retq']
+                if args != []:
+                    self.body += [f'movq {self.lookup_tmp(args[0])}, %rax']
+                self.body += [f'jmp E_{proc_name}']
+            elif opcode == 'call':
+                self.process_call(args, result)
+            elif opcode == 'param':
+                self.process_param(args)
             else:
                 self.reporter.report(f'Processing Intruction: unknown opcode {opcode}', -2, self.reporter.stage)
         
-        stack_size = len(self.temps.keys())
-        if stack_size % 2 != 0: stack_size += 1 # 16 byte alignment for x64
-        self.asm[:0] = [f'pushq %rbp',
-                    f'movq %rsp, %rbp',
-                    f'subq ${8 * stack_size}, %rsp'] \
-        #  + [f'// {tmp} in {reg}' for (tmp, reg) in temp_map.items()]
-        self.asm += [f'movq %rbp, %rsp',
-                    f'popq %rbp',
-                    f'xorq %rax, %rax',
-                    f'retq']
+
 
     def process_const(self, args, result):
         if len(args) != 1:
@@ -103,15 +147,15 @@ class Tox64:
         if  type(args[0]) != int:
             self.reporter.report(f'Processing Const: expected type(args[0]) == int, found type {type(args[0])}', -2, self.reporter.stage)
         result = self.lookup_tmp(result)
-        self.asm.append(f'movq ${args[0]}, {result}')
+        self.body.append(f'movq ${args[0]}, {result}')
 
     def process_copy(self, args, result):
         if len(args) != 1:
             self.reporter.report(f'Processing Copy: expected len(args) == 1, found length {len(args)}', -2, self.reporter.stage)
         arg = self.lookup_tmp(args[0])
         result = self.lookup_tmp(result)
-        self.asm.append(f'movq {arg}, %r11')
-        self.asm.append(f'movq %r11, {result}')
+        self.body.append(f'movq {arg}, %r11')
+        self.body.append(f'movq %r11, {result}')
 
     def process_binop(self, opcode, args, result):
         if len(args) != 2:
@@ -121,11 +165,11 @@ class Tox64:
         result = self.lookup_tmp(result)
         op = binops[opcode]
         if type(op) == str:
-            self.asm += [f'movq {arg1}, %r11',
+            self.body += [f'movq {arg1}, %r11',
                         f'{op} {arg2}, %r11',
                         f'movq %r11, {result}']
         else: 
-            self.asm.extend(op(arg1, arg2, result))
+            self.body.extend(op(arg1, arg2, result))
 
     def process_unop(self, opcode, args, result):
         if len(args) != 1:
@@ -133,35 +177,47 @@ class Tox64:
         arg = self.lookup_tmp(args[0])
         result = self.lookup_tmp(result)
         op = unops[opcode]
-        self.asm += [f'movq {arg}, %r11',
+        self.body += [f'movq {arg}, %r11',
                     f'{op} %r11',
                     f'movq %r11, {result}']
-
-    def process_print(self, args):
-        arg = self.lookup_tmp(args[0])
-        self.asm += [f'leaq .lprintfmt(%rip), %rdi',
-                    f'movq {arg}, %rsi',
-                    f'xorq %rax, %rax',
-                    f'callq printf@PLT']
 
     def process_boolop(self, args):
         if len(args) != 2:
             self.reporter.report(f'Processing cmpq: expected len(args) == 2, found length {len(args)}', -2, self.reporter.stage)
         arg1 = self.lookup_tmp(args[0])
         arg2 = self.lookup_tmp(args[1])
-        self.asm += [f'movq {arg2}, %r11']
-        self.asm += [f'cmpq %r11, {arg1}']
+        self.body += [f'movq {arg2}, %r11']
+        self.body += [f'cmpq %r11, {arg1}']
 
     def process_jump(self, opcode, args):
         if len(args) != 1:
             self.reporter.report(f'Processing Jump ({opcode}): expected len(args) == 1, found length {len(args)}', -2, self.reporter.stage)
-        self.asm += [f'{opcode} .L{args[0]}']
+        self.body += [f'{opcode} .L{args[0]}']
 
     def process_label(self, args):
         if len(args) != 1:
             self.reporter.report(f'Processing Label ({args[0]}): expected len(args) == 1, found length {len(args)}', -2, self.reporter.stage)
-        self.asm += [f'.L{args[0]}:']
+        self.body += [f'.L{args[0]}:']
 
+    def process_globalVar(self, name, value):
+        self.asm += [f'.globl {name[1:]}']
+        self.asm += [f'.data']
+        self.asm += [f'{name[1:]}: .quad {value}']
+
+    def process_call(self, args, result):
+        name, num_args = args
+        self.body += [f'callq {name[1:]}']
+        if num_args > 6:
+            self.body += [f'addq ${8*(num_args-6)}, %rsp']
+        if result != None:
+            self.body += [f'movq %rax, {self.lookup_tmp(result)}']
+
+    def process_param(self, args):
+        arg_num, var = args
+        if arg_num <= 6:
+            self.body += [f'movq {self.lookup_tmp(var)}, %{arg_registers[arg_num-1]}']
+        else:
+            self.body += [f'pushq {self.lookup_tmp(var)}']
 
 
     def compile_tac(self, file):
@@ -176,17 +232,12 @@ class Tox64:
         tjs = None
         with open(file, 'rb') as fp:
             tjs = json.load(fp)
-        assert isinstance(tjs, list) and len(tjs) == 1, tjs
-        tjs = tjs[0]
-        assert 'proc' in tjs and tjs['proc'] == '@main', tjs
-        self.tac_to_asm(tjs['body'])
+        assert isinstance(tjs, list), tjs
+        self.tac_to_asm(tjs)
         asm = ['\t' + line for line in self.asm]
         asm[:0] = [f'\t.section .rodata',
                     f'.lprintfmt:',
-                    f'\t.string "%ld\\n"',
-                    f'\t.text',
-                    f'\t.globl main',
-                    f'main:']
+                    f'\t.string "%ld\\n"']
         sname = rname + '.x64-linux.s'
         with open(sname, 'w') as afp:
             print(*asm, file=afp, sep='\n')

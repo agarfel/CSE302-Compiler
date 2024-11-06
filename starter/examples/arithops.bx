@@ -25,4 +25,5 @@ def main() {
   print(result);
   result = -x;
   print(result);
+  return;
 }

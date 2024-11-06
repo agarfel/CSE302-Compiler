@@ -10,6 +10,7 @@ for bx_file in examples/*.bx; do
     # Run the first command
     python3 bxc.py "$bx_file"
 
+
     # Check if the required 'source.tac.json' file is created
     if [ ! -f "$base_name.tac.json" ]; then
         echo "Error: source.tac.json not created, skipping further processing for $bx_file."
@@ -17,7 +18,10 @@ for bx_file in examples/*.bx; do
     fi
 
     # Run the remaining commands
-    gcc -o "$base_name.exe" "$base_name.x64-linux.s"
+    gcc -c bxlib/bx_runtime.c -o bxlib/bx_runtime.o
+
+    gcc -o "$base_name.exe" "$base_name.x64-linux.s" bxlib/bx_runtime.o
+
     
     # Capture the output of the executable into a variable
     output=$(./"$base_name.exe")
@@ -44,7 +48,7 @@ for bx_file in examples/*.bx; do
     rm "$base_name.exe"
     rm "$base_name.tac.json"
     rm "$base_name.opt.tac.json"
-
+    rm "bxlib/bx_runtime.o"
 
     #echo "$bx_file processed."
 done

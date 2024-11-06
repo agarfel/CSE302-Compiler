@@ -15,4 +15,5 @@ def main() {
   print(-x);
   print(-x / z);
   print(-x % z);
+  return;
 }

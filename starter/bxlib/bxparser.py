@@ -24,8 +24,52 @@ class Parser:
     tokens = Lexer.tokens
 
     def p_program(self, p):
-        """program : DEF MAIN LPAREN RPAREN LCPAREN stmts RCPAREN"""
-        p[0] = Block(statements=p[6], line=p.lineno(1))
+        """program : decl
+                | decl program"""
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]]
+            p[0] += p[2]
+
+    def p_decl(self, p):
+        """decl : vardecl
+        | procdecl """
+        p[0] = p[1]
+
+    def p_procdecl(self, p):
+        """procdecl : DEF IDENT LPAREN params RPAREN COLON ty block
+                    | DEF IDENT LPAREN params RPAREN block """
+
+        if len(p) == 7:
+            # print(1, p[2])
+            p[0] = ProcDecl(name=p[2], args=p[4], block=p[6], return_ty=None, line=p.lineno(1))
+
+        else:
+            # print(2, p[2])
+            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], block=p[8], line=p.lineno(1))
+
+    def p_param(self, p):
+        """params : identl COLON ty
+                | identl COLON ty COMMA params 
+                | """
+
+        if len(p) == 1:
+            p[0] = []
+        elif len(p) == 4:
+            p[0] = [Param(name=p[1], ty=p[3], line=p.lineno(1))]
+        else:
+            p[0] = [Param(name=p[1], ty=p[3], line=p.lineno(1))]
+            p[0]+=[p[5]]
+
+    def p_identl(self,p):
+        """identl : IDENT 
+                    | IDENT COMMA identl"""
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0]= [p[1]]
+            p[0] += p[3]
 
     def p_stmts(self, p):
         """stmts :
@@ -36,30 +80,38 @@ class Parser:
             p[0] = p[1]
             p[0].append(p[2])
 
-
     def p_stmt(self, p):
         """stmt : vardecl
         | assign
-        | print
         | block
+        | eval
         | ifelse
         | while
         | jump 
+        | return
         | """
         p[0] = p[1]
 
-
     def p_vardecl(self, p):
-        """vardecl : VAR IDENT EQUAL expr COLON INT SEMICOLON"""
-        p[0] = VarDecl(name=p[2], ty=p[6], value=p[4], line=p.lineno(1))
+        """vardecl : VAR varinits COLON ty SEMICOLON"""
+        p[0] = VarDecl(var_l=p[2], ty=p[4], line=p.lineno(1))
+
+    def p_varninits(self, p):
+        """varinits : IDENT EQUAL expr 
+                | IDENT EQUAL expr COMMA varinits"""
+        if len(p) == 4:
+            p[0] = [VarInit(name=p[1], value=p[3], line=p.lineno(1))]
+        else:
+            p[0] = [VarInit(name=p[1], value=p[3], line=p.lineno(1))]
+            p[0] += p[5]
 
     def p_assign(self, p):
         """assign : IDENT EQUAL expr SEMICOLON"""
         p[0] = Assign(name=p[1], value=p[3], line=p.lineno(1))
 
-    def p_print(self, p):
-        """print : PRINT LPAREN expr RPAREN SEMICOLON"""
-        p[0] = Print(value=p[3], line=p.lineno(1))
+    def p_eval(self, p):
+        """eval : expr SEMICOLON"""
+        p[0] = Eval(value=p[1], line=p.lineno(1))
 
     def p_ifelse(self, p):
         """ifelse : IF LPAREN expr RPAREN block
@@ -80,6 +132,14 @@ class Parser:
                 | CONTINUE SEMICOLON"""
         p[0] = Jump(ty=p[1], line=p.lineno(1))
 
+    def p_return(self, p):
+        """return : RETURN SEMICOLON
+                | RETURN expr SEMICOLON"""
+        if len(p) == 3:
+            p[0] = Return(value=None, line=p.lineno(1))
+        else:
+            p[0] = Return(value=p[2], line=p.lineno(1))
+
     def p_block(self, p):
         """block : LCPAREN stmts RCPAREN"""
         p[0] = Block(statements=p[2], line=p.lineno(1))
@@ -89,8 +149,12 @@ class Parser:
         p[0] = VarExpr(name=p[1], line=p.lineno(1), ty='undefined')
 
     def p_expr_number(self, p):
-        """expr : NUMBER"""
-        p[0] = NumberExpr(value=p[1], line=p.lineno(1), ty='undefined')
+        """expr : NUMBER
+                | MINUS NUMBER"""
+        if len(p) == 2:
+            p[0] = NumberExpr(value=p[1], line=p.lineno(1), ty='undefined')
+        else:
+            p[0] = NumberExpr(value=-p[1], line=p.lineno(1), ty='undefined')
 
     def p_expr_binop(self, p):
         """expr : expr PLUS expr
@@ -131,12 +195,29 @@ class Parser:
                 | FALSE """
         p[0] = Bool(value=p[1], ty='undefined', line=p.lineno(1))
     
-    def p_expr_keywords(self, p):
-        """expr : DEF
-            | MAIN
-            | PRINT
-            | INT """
+    def p_expr_proccall(self, p):
+        """expr : IDENT LPAREN args RPAREN """
+        if len(p) == 5:
+            p[0] = ProcCall(name=p[1], args=p[3], line=p.lineno(1),ty='undefined')
+        else:
+            p[0] = ProcCall(name=p[1], args=None, line=p.lineno(1),ty='undefined')
 
+    def p_args(self, p):
+        """args : expr COMMA args
+                | expr
+                | """
+        if len(p) == 1:
+            p[0] = []
+        elif len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = [p[1]]
+            p[0] += p[3]
+
+    def p_type(self, p):
+        """ty : BOOL
+                | INT"""
+        p[0] = Ty(ty=p[1], line=p.lineno(1))
 
     def p_error(self, t):
         if t != None:

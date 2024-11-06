@@ -8,17 +8,20 @@ class Scope:
         self.variables = dict()    
     
     def declare(self, name : str, register : str):
-        self._variables[name] = register
+        self.variables[name] = register
 
 
 class ToTac:
-    def __init__(self, reporter):
+    def __init__(self, functions, reporter):
         self.tmp_counter = 0
         self.label_counter = 0
         self.body = []
-        self.scopes = []
+        self.tac = []
+        self.scopes = [Scope()]
         self.whiles = []
         self.reporter = reporter
+        self.proc = 'Global'
+        self.functions = functions
 
     def emit(self, opcode, args, result):
         self.body.append({"opcode": opcode, "args": args, "result": result})
@@ -28,6 +31,10 @@ class ToTac:
             if name in scope.variables.keys():
                 return scope.variables[name]
         self.reporter.report(f"Undefined variable {name}", -1, self.reporter.stage)
+
+    def processProgram(self, p):
+        for decl in p:
+            self.processDeclaration(decl)
 
     def processBlock(self, p : Block):
         #TO DO
@@ -44,22 +51,48 @@ class ToTac:
 
         self.scopes.pop()
 
+    def processDeclaration(self, s: Decl):
+        if type(s) == VarDecl:
+            for var in s.var_l:
+                if var.value.ty == 'int':
+                    if type(var.value.value) != int:
+                        self.reporter.report(f'global variable wrong type: {var}', s.line, self.reporter.stage)
+                    self.tac.append({"var": f'@{var.name}', "init": var.value.value})
+                elif var.value.ty == 'bool':
+                    if var.value.value == 'true':
+                        self.tac.append({"var": f'@{var.name}', "init": 1})
+                    elif var.value.value == 'false':
+                        self.tac.append({"var": f'@{var.name}', "init": 0})
+                    else:
+                        self.reporter.report(f'global variable wrong type: {var}', s.line, self.reporter.stage)
+                self.scopes[-1].variables[var.name] = f'@{var.name}'
+
+        elif type(s) == ProcDecl:
+            r = [name for p in s.args for name in p.name]
+            for x in r:
+                self.scopes[-1].variables[x] = f'%{x}'
+            self.proc = s.name
+            self.processBlock(s.block)
+            self.tac.append({"proc": f'@{s.name}', "args": [f'%{x}' for x in r], "body": self.body})
+            self.body = []
+
+
     def processStatement(self, s: Statement):
         if type(s) == VarDecl:
-            value = self.processExpression(s.value)
-            tmp = self.tmp_counter
-            self.tmp_counter += 1
-            self.scopes[-1].variables[s.name] = f'%{tmp}'
-            self.emit("copy", [value], f'%{tmp}')
+            for varinit in s.var_l:
+                value = self.processExpression(varinit.value)
+                tmp = self.tmp_counter
+                self.tmp_counter += 1
+                self.scopes[-1].variables[varinit.name] = f'%{tmp}'
+                self.emit("copy", [value], f'%{tmp}')
 
         elif type(s) == Assign:
             value = self.processExpression(s.value)
             var = self.getVar_register(s.name)
             self.emit("copy", [value], var)
 
-        elif type(s) == Print:
+        elif type(s) == Eval:
             value = self.processExpression(s.value)
-            self.emit("print", [value], None)
 
         elif type(s) == Block:
             self.processBlock(s)
@@ -109,6 +142,14 @@ class ToTac:
             else:
                 self.reporter.report("Unidentified jump: {s.ty}", s.line, self.reporter.stage)
 
+        elif type(s) == Return:
+            if s.value == None:
+                self.emit("ret", [], None)
+            else:
+                value = self.processExpression(s.value)
+                self.emit("ret", [value], None)
+
+
     def processExpression(self, e : Expr):
         if type(e) == VarExpr:
             var = self.getVar_register(e.name)
@@ -118,6 +159,15 @@ class ToTac:
             tmp = self.tmp_counter
             self.tmp_counter += 1
             self.emit("const", [e.value], f'%{tmp}')
+            return f'%{tmp}'
+        
+        elif type(e) == Bool:
+            tmp = self.tmp_counter
+            self.tmp_counter += 1
+            if e.value == 'true':
+                self.emit("const", [1], f'%{tmp}')
+            else:
+                self.emit("const", [0], f'%{tmp}')
             return f'%{tmp}'
 
         elif type(e) == BinOpExpr:
@@ -138,7 +188,22 @@ class ToTac:
             self.emit(operation, [value], f'%{tmp}')
             return f'%{tmp}'
 
+        elif type(e) == ProcCall:
+            for i, arg in enumerate(e.args[:6]):
+                value = self.processExpression(arg)
+                self.emit('param', [i+1, value], None)
+            for i, arg in enumerate(e.args[6:]):
+                value = self.processExpression(arg)
+                self.emit('param', [len(e.args)-i, value], None)
 
+            if e.name in self.functions['Function']:
+                tmp = self.tmp_counter
+                self.tmp_counter += 1
+                self.emit('call', [f'@{e.name}', len(e.args)+1], f'%{tmp}')
+                return f'%{tmp}'
+            else:
+                self.emit('call', [f'@{e.name}', len(e.args)+1], None)
+                return None
 
     def getBinOp(self, op):
         if op == '+': return "add"
@@ -196,5 +261,4 @@ class ToTac:
                 self.processBool(e.right, lab_true, lab_false)
 
     def getData(self):
-        data = [{"proc": "@main", "body" : self.body}]
-        return data
+        return self.tac
