@@ -238,7 +238,15 @@ class ToTac:
             elif e.value == 'false':
                 self.emit('jmp', [lab_false], None)
         else:
-            if e.operation in boolOp.keys():
+            if type(e) == VarExpr:
+                var = self.getVar_register(e.name)
+                tmp = f'%{self.tmp_counter}'
+                self.tmp_counter += 1
+                self.emit('const', [0], tmp)
+                self.emit('cmpq', [tmp, var], None)
+                self.emit('jnz', [lab_true], None)
+                self.emit('jmp', [lab_false], None)
+            elif e.operation in boolOp.keys():
                 t1 = self.processExpression(e.left)
                 t2 = self.processExpression(e.right)
                 self.emit('cmpq', [t1, t2], None)

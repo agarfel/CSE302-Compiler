@@ -1,0 +1,10 @@
+def add(a : int, b : int) : int {
+    var result = a + b : int;
+    print(result);  // Expected output
+    return result;
+}
+
+def main() {
+    var sum = add(3, 7) : int;
+    return;
+}

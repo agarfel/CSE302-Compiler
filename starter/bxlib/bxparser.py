@@ -60,7 +60,7 @@ class Parser:
             p[0] = [Param(name=p[1], ty=p[3], line=p.lineno(1))]
         else:
             p[0] = [Param(name=p[1], ty=p[3], line=p.lineno(1))]
-            p[0]+=[p[5]]
+            p[0]+= p[5]
 
     def p_identl(self,p):
         """identl : IDENT 

@@ -1,0 +1,14 @@
+def print_boolean(value : bool) {
+    if (value) {
+        print(1);  // true
+    } else {
+        print(0);  // false
+    }
+    return;
+}
+
+def main() {
+    print_boolean(true);   // Expected output: 1
+    print_boolean(false);  // Expected output: 0
+    return;
+}

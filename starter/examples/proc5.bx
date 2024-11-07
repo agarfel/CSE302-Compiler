@@ -1,0 +1,14 @@
+var global_count = 0 : int;
+
+def increment() {
+    global_count = global_count + 1;
+    print(global_count);  // Expected output each call
+    return;
+}
+
+def main() {
+    increment();  // Output: 1
+    increment();  // Output: 2
+    increment();  // Output: 3
+    return;
+}

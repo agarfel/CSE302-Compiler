@@ -1,0 +1,28 @@
+def main() {
+    var a = 1 : int;
+    var b = 2 : int;
+    var c = 3 : int;
+    var d = 4 : int;
+    var e = 5 : int;
+    var f = 6 : int;
+    var g = 7 : int;
+    var h = 8 : int;
+    var i = 9 : int;
+
+    print(test(a,b,c,d,e,f,g,h,i));
+    print(a);
+    print(b);
+    print(c);
+    print(d);
+    print(e);
+    print(f);
+    print(g);
+    print(h);
+    print(i);
+
+    return;
+}
+
+def test(a, b, c, d, e, f, g, h, i : int) : int {
+    return a+b+c+d+e+f+g+h+i;
+}

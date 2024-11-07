@@ -104,7 +104,7 @@ class TypeChecker:
 
                 if not self.hasReturn(decl.block):
                     self.reporter.report(f'Procedure {decl.name} is missing a return statement.', decl.line , self.reporter.stage)
-                    return
+                    
 
 
     def for_program(self, p: list):
@@ -231,7 +231,7 @@ class TypeChecker:
                 self.reporter.report(f'Undeclared variable: {e.name}', e.line, self.reporter.stage)
                 return
             tmp = self.getVar_type(e.name, e.line)
-            if tmp != 'int':
+            if tmp != 'int' and tmp != 'bool':
                 self.reporter.report(f"Invalid variable type: {e.name} is a {tmp}", e.line, self.reporter.stage)
                 return
             e.ty = tmp
@@ -298,7 +298,7 @@ class TypeChecker:
                 elif e.args[0].ty == 'bool':
                     e.name = '__bx_print_bool'
                 else:
-                    self.reporter.report(f"Procedure {e.name} called with unexpected type {args[0].ty} . Expected {self.procedures[e.name]}", e.line, self.reporter.stage)
+                    self.reporter.report(f"Procedure print called with unexpected type {[a.ty for a in e.args]} . Expected int or bool", e.line, self.reporter.stage)
 
             if e.name not in self.procedures.keys():    # Procedure not defined or called yet
                 self.reporter.report(f"Calling undeclared procedure: {e.name}", e.line, self.reporter.stage)
@@ -315,7 +315,6 @@ class TypeChecker:
 
 
         else:
-            print(e)
             self.reporter.report(f'Unidentified expression: {e}', e.line, self.reporter.stage)
             return
 

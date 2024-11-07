@@ -1,0 +1,15 @@
+def max(a : int, b : int) : int {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+def main() {
+    var result1 = max(10, 5) : int;
+    var result2 = max(3, 7) : int;
+    print(result1);  // Expected output
+    print(result2);  // Expected output
+    return;
+}

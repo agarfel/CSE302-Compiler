@@ -52,7 +52,7 @@ class Tox64:
             self.reporter.report(f'Temporary {tmp} has an unexpected type ({type(tmp)}). Expected str', -2, self.reporter.stage)
             return
         if tmp[0] == '@':
-            return f'{tmp}(%rip)'
+            return f'{tmp[1:]}(%rip)'
         if tmp  not in self.temps.keys():
             self.temps[tmp] = f'{-8 * (len(self.temps.keys()) + 1)}(%rbp)'
         # print(self.temps)
@@ -93,6 +93,7 @@ class Tox64:
 
         for i, arg in enumerate(args[6:]):
             self.temps[arg] = f'{8 * (i + 1)}(%rbp)'
+            
         self.asm += self.body
         self.body = []
         self.temps = {}

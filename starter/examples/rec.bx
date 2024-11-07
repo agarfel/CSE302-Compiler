@@ -1,0 +1,21 @@
+def odd(x : int) : bool {
+    return even(x-1);
+}
+
+def even(x : int) : bool {
+    if (x == 0) {
+        return true;
+    } else if ( x== 1) {
+        return false;
+    }
+    return odd(x-1);
+}
+
+def main() {
+    print(even(15));
+    print(even(20));
+    print(odd(15));
+    print(odd(20));
+
+    return;
+}

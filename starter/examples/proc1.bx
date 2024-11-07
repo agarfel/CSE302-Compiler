@@ -1,0 +1,11 @@
+def hello() {
+    var x = 10 : int;
+    x = x + 5;
+    print(x);  // Expected output
+    return;
+}
+
+def main() {
+    hello();
+    return;
+}
