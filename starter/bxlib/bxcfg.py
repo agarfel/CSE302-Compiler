@@ -30,6 +30,24 @@ class CFG:
         self.edges = []     # List of DIRECTED LABELED edges. Edge: (Label origin, Label destination, Condition) with Condition: (var1, comparison, var2) | True
         self.label_counter = 0
         self.reporter = reporter
+        self.proc = ""
+
+    def run(self, data):
+        result = []
+        for tac in data:
+            if 'var' in tac.keys():
+                result += [tac]
+                continue
+            self.proc = tac['proc'][1:]
+            self.bbinference(tac['body'],)
+            self.build_graph()
+            self.optimise()
+            result += self.serialise(tac['proc'], tac['args'])
+            self.blocks = {}
+            self.edges = [] 
+            self.proc =''
+            self.label_counter = 0
+        return result
 
     def new_label(self):
         self.label_counter += 1
@@ -60,19 +78,20 @@ class CFG:
             cycles += 1
         return count
 
+
     def bbinference(self, tac):
         first = ''
         if len(tac) == 0 or tac[0]['opcode'] != 'label':
-            tac.insert(0, {'opcode': 'label', 'args': ['initial'], 'result': None})
+            tac.insert(0, {'opcode': 'label', 'args': [f'{self.proc}_initial'], 'result': None})
         else:
             first = tac[0]['args'][0]
-            tac[0]['args'] = ['initial']
+            tac[0]['args'] = [f'{self.proc}_initial']
         prev = ''
-        label = 'initial'
+        label = f'{self.proc}_initial'
         for i in range(len(tac)):
             if first != '':
                 if tac[i]['opcode'][0] == 'j' and first in tac[i]['args']: 
-                    tac[i]['args'][tac[i]['args'].index(first)] = 'initial'
+                    tac[i]['args'][tac[i]['args'].index(first)] = f'{self.proc}_initial'
             if tac[i]['opcode'] == 'jmp':
                 self.blocks[label].content.append(tac[i])
                 if (i + 1 < len(tac)) and tac[i + 1]['opcode'] != 'label':
@@ -117,14 +136,14 @@ class CFG:
                 i += 1
 
 
-    def serialise(self):
-        current = 'initial'
+    def serialise(self, f_name, f_args):
+        current = f'{self.proc}_initial'
         result = []
         labels = [str(l) for l in self.blocks.keys()]
-        schedule = ['initial']
+        schedule = [f'{self.proc}_initial']
         result += self.blocks[current].content
-        if self.blocks['initial'].content[-1]['opcode'][0] == 'j':
-            next = [str(self.blocks['initial'].content[-1]['args'][0])]
+        if self.blocks[f'{self.proc}_initial'].content[-1]['opcode'][0] == 'j':
+            next = [str(self.blocks[f'{self.proc}_initial'].content[-1]['args'][0])]
         while set(schedule) != set(labels):
             if current in schedule:
                 for l in labels:
@@ -133,7 +152,7 @@ class CFG:
                         break
             while next != []:
                 
-                if current!='initial':
+                if current!=f'{self.proc}_initial':
                     result += self.blocks[current].content
                     schedule.append(current)
                 if self.blocks[current].content[-1]['opcode'][0] == 'j':
@@ -146,7 +165,7 @@ class CFG:
                             current = l
                             break
                     break
-        return [{"proc": "@main", "body" : result}]
+        return [{"proc": f_name, "args": f_args, "body": result}]
     
 # ----------------  Optimisation Functions  ------------------
 
@@ -162,7 +181,7 @@ class CFG:
                     continue
                 l2 = b1.next[0]
                 b2 = self.blocks[l2]
-                if len(b2.prev) != 1 or l2 == 'initial':
+                if len(b2.prev) != 1 or l2 == f'{self.proc}_initial':
                     continue
                 # print(f'Attempting to coalesce blocks {l1} and {l2}')
                 self.aux_coalesce(l1,b1,l2,b2)
@@ -197,7 +216,7 @@ class CFG:
     def unreachable(self):
         count = 0
         not_visited = set([str(b) for b in self.blocks.keys()])
-        stack = ['initial']
+        stack = [f'{self.proc}_initial']
 
         while stack != []:
             node = stack.pop()
@@ -224,7 +243,7 @@ class CFG:
         while found:
             found = False
             for label, block in self.blocks.items():
-                if len(block.content) == 2 and block.next != [] and label != 'initial':
+                if len(block.content) == 2 and block.next != [] and label != f'{self.proc}_initial':
                     n = self.blocks[label].next[0]
                     for prev in self.blocks[label].prev:
                         self.replace_label(self.blocks[prev], label, n)

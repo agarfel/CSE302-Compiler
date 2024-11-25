@@ -62,14 +62,10 @@ def run_compiler(reporter, content, basename, debug=False):
     with open(f'{basename}.tac.json', 'w') as f:
         json.dump(data, f)
 
-    # reporter.stage = "CFG"
-    # cfg = CFG(reporter)
-    # cfg.bbinference(data[0]['body'])
-    # cfg.build_graph()
-    # n = cfg.optimise()
-    # # print(f'Performed {n} optimisations')
-    # data = cfg.serialise()
-    # print(data)
+    reporter.stage = "CFG"
+    cfg = CFG(reporter)
+    data = cfg.run(data)
+    
     with open(f'{basename}.opt.tac.json', 'w') as f:
         json.dump(data, f)
 

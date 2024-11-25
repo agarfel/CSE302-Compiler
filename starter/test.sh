@@ -27,9 +27,9 @@ for bx_file in examples/*.bx; do
     output=$(./"$base_name.exe")
 
     # Check if an expected output file exists
-    if [ -f "examples/expected/$b" ]; then
+    if [ -f "expected/$b" ]; then
         # Compare the actual output to the expected output
-        expected_output=$(cat "examples/expected/$b")
+        expected_output=$(cat "expected/$b")
         
         if [ "$output" == "$expected_output" ]; then
             echo "Success: Output for $bx_file is correct."
