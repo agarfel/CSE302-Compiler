@@ -34,20 +34,41 @@ class Parser:
 
     def p_decl(self, p):
         """decl : vardecl
-        | procdecl """
+        | procdecl 
+        | exception"""
         p[0] = p[1]
 
+    def p_exception(self, p):
+        """exception : EXCEPTION IDENT SEMICOLON"""
+        p[0] = ExceptionDecl(name=p[2], line=p.lineno(1))
+            
     def p_procdecl(self, p):
-        """procdecl : DEF IDENT LPAREN params RPAREN COLON ty block
+        """procdecl : DEF IDENT LPAREN params RPAREN COLON ty raises block
+                    | DEF IDENT LPAREN params RPAREN COLON ty block
+                    | DEF IDENT LPAREN params RPAREN raises block
                     | DEF IDENT LPAREN params RPAREN block """
 
         if len(p) == 7:
             # print(1, p[2])
-            p[0] = ProcDecl(name=p[2], args=p[4], block=p[6], return_ty=None, line=p.lineno(1))
+            p[0] = ProcDecl(name=p[2], args=p[4], block=p[6], return_ty=None, raises=None, line=p.lineno(1))
 
-        else:
+        elif len(p) == 8:
+            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=None, raises=p[7], block=p[8], line=p.lineno(1))
             # print(2, p[2])
-            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], block=p[8], line=p.lineno(1))
+        elif len(p) == 9:
+                p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=None, block=p[8], line=p.lineno(1))
+        elif len(p) == 10:
+            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=p[8], block=p[9], line=p.lineno(1))
+        else: print('CRY')
+
+    def p_raises(self, p):
+        """raises : RAISES IDENT raises
+                    |"""
+        if len(p) == 1:
+            p[0] = []
+        else:
+            p[0] = [Raises(name=p[2], line=p.lineno(1))]
+            p[0] += p[3]
 
     def p_param(self, p):
         """params : identl COLON ty
@@ -89,8 +110,28 @@ class Parser:
         | while
         | jump 
         | return
+        | raise
+        | tryexcept
         | """
         p[0] = p[1]
+
+    def p_tryexcept(self, p):
+        """tryexcept : TRY block catches"""
+        p[0] = TryExcept(block=p[2], catches=p[3], line=p.lineno(1))
+
+    def p_catches(self, p):
+        """catches : EXCEPT IDENT block catches
+                    | """
+        if len(p) == 1:
+            p[0] = []
+        else:
+            p[0] = [Catch(name=p[2], block=p[3], line=p.lineno(1))]
+            p[0].append(p[4])
+
+
+    def p_raise(self, p):
+        """raise : RAISE IDENT SEMICOLON"""
+        p[0] = Raise(name=p[2], line=p.lineno(1))
 
     def p_vardecl(self, p):
         """vardecl : VAR varinits COLON ty SEMICOLON"""
@@ -119,7 +160,7 @@ class Parser:
                     | IF LPAREN expr RPAREN block ELSE ifelse
                      """
         if len(p) != 8:
-                p[0] = Ifelse(condition=p[3], ifbranch=p[5], elsebranch=Block(statements=[], line=p.lineno(1)), line=p.lineno(1))
+            p[0] = Ifelse(condition=p[3], ifbranch=p[5], elsebranch=Block(statements=[], line=p.lineno(1)), line=p.lineno(1))
         else:
             p[0] = Ifelse(condition=p[3], ifbranch=p[5], elsebranch=p[7], line=p.lineno(1))
 

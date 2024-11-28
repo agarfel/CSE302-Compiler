@@ -61,17 +61,42 @@ def gcp(proc : taclib.Proc, cfg: cfglib.CFG):
 
 def destruct(tac):
     phi = dict()
-    for proc in tac.keys():
-        if type(proc) != taclib.Proc: continue
-        for instruction in tac:
+    for decl in tac:
+        if type(decl) != taclib.Proc: continue
+        for instruction in decl.body:
             if instruction.opcode != 'phi': continue
             for label, x in instruction.arg1.items():
                 if label not in phi.keys():
                     phi[label]=[]
                 phi[label].append((instruction.dest, x))
-    
-    for label, v in phi:
-        tac[label]
+    found = True
+    while found:
+        found = False
+        for decl in tac:
+            if type(decl) != taclib.Proc: continue
+            for i, instruction in enumerate(decl.body):
+                if instruction.opcode == 'label'  and instruction.arg1 in phi.keys():
+                    j = i
+                    while decl.body[j].opcode not in taclib.jumps and decl.body[j].opcode != 'ret':
+
+                        j +=1
+                    for dest, arg in phi[instruction.arg1]:
+                        decl.body.insert(j,taclib.Instr(dest, 'copy', [arg]))
+                    del phi[instruction.arg1]
+                    found = True
+                    break
+            if found: break
+    found = True
+    while found:
+        found = False
+        for decl in tac:
+            if type(decl) != taclib.Proc: continue
+            for i, instruction in enumerate(decl.body):
+                if instruction.opcode != 'phi': continue
+                decl.body.pop(i)
+                found = True
+                break
+            if found: break
 
 # ------------------------------------------------------------------------------
 def run(tac):
@@ -109,9 +134,9 @@ if __name__ == "__main__":
             dead_store_elimination(cfg)
             cfglib.linearize(tmp, cfg)
             opt_tac.append(tmp)
-        destruct(opt_tac)
+        # destruct(opt_tac)
 
         # print('# ------------------------------------------------------------------------------')
-        # print_tac(opt_tac)
+        print_tac(opt_tac)
         # print('# ------------------------------------------------------------------------------')
         # run(opt_tac)

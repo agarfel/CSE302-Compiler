@@ -7,7 +7,7 @@ bool_op = ['||','&&','<','>','<=','>=','!','==','!=']
 int_op = ['|','^','&','<<','>>','+','-','*','/','%','-','~']
 
 class ProcedureType():
-    def __init__(self, input_types, return_type):
+    def __init__(self, input_types, return_type, raise_list):
         if type(return_type) == str:
             self.return_type = return_type
         else: self.return_type = return_type.ty
@@ -26,16 +26,18 @@ class ProcedureType():
             for var in input_types:
                 r += var.ty
             self.input_types = r
+        self.raise_list = raise_list
 
     def __str__(self):
         r = ', '.join(self.input_types)
-        r += f'  -->  {self.return_type}'
+        r += f'  -->  {self.return_type} - {self.raise_list}'
         return r
 
 
 class Scope:
     def __init__(self):
         self.variables = dict()
+        self.exceptions = set()
     
     def declare(self, name : str, type : str):
         if name in self:
@@ -49,9 +51,10 @@ class Scope:
 class TypeChecker:
     def __init__(self, reporter : Reporter):
         self.scopes = [Scope()]
-        self.procedures = {'__bx_print_int': ProcedureType(['int'], 'void'), '__bx_print_bool': ProcedureType(['bool'], 'void')}  # Procedure_name : ([type of arguments], return type / void))
+        self.procedures = {'__bx_print_int': ProcedureType(['int'], 'void',[]), '__bx_print_bool': ProcedureType(['bool'], 'void',[])}  # Procedure_name : ([type of arguments], return type / void))
         self.reporter = reporter
         self.proc = None
+        self.exceptions = set()
         self.functions = {'Function': [], 'Subroutine': []}
 
     def is_declared(self, name):
@@ -82,6 +85,16 @@ class TypeChecker:
         else:
             self.scopes[-1].declare(name, ty)
 
+    def get_exceptions(self, p):
+        for decl in p:
+           if type(decl) == ExceptionDecl:
+                name = decl.name
+                if name in self.exceptions:
+                    self.reporter.report(f'Exception {name} defined twice.', decl.line , self.reporter.stage)
+                else:
+                    self.exceptions.add(name)
+
+
     def get_processes(self, p):
         for decl in p:
             if type(decl) == ProcDecl:
@@ -95,22 +108,30 @@ class TypeChecker:
                 for param in decl.args:
                     for n in param.name:
                         arg_ty.append(param.ty.ty)
+                
+                raise_list = []
+                for raises in decl.raises:
+                    if raises.name not in self.exceptions:
+                        self.reporter.report(f'Procedure {decl.name} calling undeclared exception {raises.name}.', dec.line , self.reporter.stage)
+                        return
+                    raise_list.append(raises.name)
+
                 if decl.return_ty == None:
-                    self.procedures[decl.name] = ProcedureType(arg_ty, 'void')
+                    self.procedures[decl.name] = ProcedureType(arg_ty, 'void', raise_list)
                     self.functions['Subroutine'].append(decl.name)
                 else:
-                    self.procedures[decl.name] = ProcedureType(arg_ty, decl.return_ty.ty)
+                    self.procedures[decl.name] = ProcedureType(arg_ty, decl.return_ty.ty, raise_list)
                     self.functions['Function'].append(decl.name)
 
                 if not self.hasReturn(decl.block):
                     self.reporter.report(f'Procedure {decl.name} is missing a return statement.', decl.line , self.reporter.stage)
-                    
 
 
     def for_program(self, p: list):
         if len(p) == 0:
             self.reporter.report("Program is empty", "-1", self.reporter.stage)
             return
+        self.get_exceptions(p)
         self.get_processes(p)
         if 'main' not in self.procedures.keys():
             self.reporter.report("main() not found", "-1", self.reporter.stage)
@@ -125,6 +146,8 @@ class TypeChecker:
             self.for_varDecl(decl)
         elif type(decl) == ProcDecl:
             self.for_procDecl(decl)
+        elif type(decl) == ExceptionDecl:
+            pass
         else:
             self.reporter.report(f'Unidentified declaration: {decl}', decl.line, self.reporter.stage)
             return
@@ -148,7 +171,7 @@ class TypeChecker:
 
     def for_procDecl(self, decl):
         self.proc = decl.name
-        self.for_block(decl.block, decl.args)
+        self.for_block(decl.block, decl.args, self.procedures[decl.name][2])
         self.proc = None
 
     def for_args(self, args):
@@ -158,16 +181,27 @@ class TypeChecker:
                 r.append(param.ty)
         return r
 
-    def for_block(self, p: Block, args=None):
+    def for_block(self, p: Block, args=None, exceptions=None):
         self.scopes.append(Scope())
         if args != None:
             for param in args:
                 for var in param.name:
                     self.declare_var(var, param.ty.ty)
+        if proc != None:
+            self.scopes[-1].exceptions.union(set(exceptions))
 
         for statement in p.statements:
             self.for_statement(statement)
         self.scopes.pop()
+
+    def get_raises(self, block):
+        raises = []
+        for stmt in block.statements:
+            if type(stmt) == Raise:
+                raises.append(stmt.name)
+            elif type(stmt) == ProcCall:
+                raises += self.procedures[stmt.name][2]
+        return raises
 
     def for_statement(self, s: Statement):
         if type(s) == VarDecl:
@@ -202,7 +236,7 @@ class TypeChecker:
             if s.condition.ty != 'bool':
                 self.reporter.report(f'Cannot use value of type {s.condition.ty} as condition. Expected expression of type bool', s.line, self.reporter.stage)
                 return
-            self.for_statement(s.block)
+            self.for_statement(s.block, exceptions=self.scopes[-1].exceptions)
 
         elif type(s) == Jump:
             pass
@@ -219,6 +253,32 @@ class TypeChecker:
             if ret_v != self.procedures[self.proc].return_type:
                 self.reporter.report(f'Returning with value of type {ret_v} expected {self.procedures[self.proc].return_type}', s.line, self.reporter.stage)
                 return
+        elif type(s) == Raise:
+            if s.name not in self.exceptions:
+                self.reporter.report(f'Raising undeclared exception {s.name}', s.line, self.reporter.stage)
+                return
+            if s.name not in self.scopes[-1].exceptions:
+                self.reporter.report(f'Raising undeclared escaping exception {s.name}', s.line, self.reporter.stage)
+                return
+        elif type(s) == Catch:
+            if s.name not in self.exceptions:
+                self.reporter.report(f'Catching undeclared exception {s.name}', s.line, self.reporter.stage)
+                return
+            self.for_block(s.block, exceptions=self.scopes[-1].exceptions)
+        elif type(s) == TryExcept:
+            tmp = []
+            for catch in s.catches:
+                if catch.name in tmp:
+                    self.reporter.report(f'Exception {catch.name} caught twice in the same try block', s.line, self.reporter.stage)
+                    return
+                tmp.append(catch.name)
+            self.for_block(s.block, exceptions=(self.scopes[-1].exceptions + tmp))
+            raises = self.get_raises(s.block)
+            for catch in s.catches:
+                if catch.name not in raises:
+                    self.reporter.report(f'Exception {catch.name} cannot happen in try block', s.line, self.reporter.stage)
+                    return
+                self.for_statement(catch)
 
         else:
             self.reporter.report(f'Unidentified statement: {s}', s.line, self.reporter.stage)

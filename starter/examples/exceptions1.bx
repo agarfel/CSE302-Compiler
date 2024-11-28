@@ -1,0 +1,15 @@
+exception DivByZero;
+
+def div(x : int, y : int) : int raises DivByZero {
+    if (y == 0) {
+        raise DivByZero;
+    }
+    return x / y;
+}
+def main() {
+    try {
+        var x = div(5, 0) : int;
+    } except DivByZero {
+        print(1);
+    }
+}

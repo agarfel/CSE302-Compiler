@@ -11,7 +11,11 @@ class AST(abc.ABC):
 @dc.dataclass
 class Decl(AST):
     line: int
-    
+
+@dc.dataclass
+class ExceptionDecl(Decl):
+    name: str
+
 @dc.dataclass
 class Program(AST):
     line: int
@@ -37,16 +41,35 @@ class Block(Statement):
     statements : list[Statement]
 
 @dc.dataclass
-class ProcDecl(Decl):
+class Raise(Statement):
+    name: str
+
+@dc.dataclass
+class Catch(Statement):
     name: str
     block: Block
-    args: [Param]
-    return_ty : Ty
+
+@dc.dataclass
+class TryExcept(Statement):
+    block: Block
+    catches: list[Catch]
 
 @dc.dataclass
 class Expr(AST):
     line: int
     ty : Ty
+
+@dc.dataclass
+class Raises(Statement):
+    name: str
+
+@dc.dataclass
+class ProcDecl(Decl):
+    name: str
+    block: Block
+    args: [Param]
+    return_ty : Ty
+    raises: list[Raises]
 
 @dc.dataclass
 class VarExpr(Expr):

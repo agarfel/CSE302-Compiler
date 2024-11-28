@@ -18,7 +18,12 @@ class Lexer:
             'true': 'TRUE',
             'false': 'FALSE',
             # 'void': 'VOID',
-            'return': 'RETURN'
+            'return': 'RETURN',
+            'exception': 'EXCEPTION',
+            'raise': 'RAISE',
+            'try': 'TRY',
+            'except': 'EXCEPT',
+            'raises': 'RAISES'
             }
 
     tokens = (

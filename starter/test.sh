@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Loop through all .bx files in the "examples" folder
-for bx_file in examples/*.bx; do
+for bx_file in examples/exceptions*.bx; do
     # Get the base name of the file (without extension)
     base_name=examples/$(basename "$bx_file" .bx)
     b=$(basename "$bx_file" .bx)
