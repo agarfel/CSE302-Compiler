@@ -1,0 +1,13 @@
+exception DivByZero;
+
+def div(x: int, y: int): int raises DivByZero {
+    if (y == 0) {
+        raise DivByZero;
+    }
+    return x / y;
+}
+
+def main() {
+    var result = div(10, 0): int;
+    return;
+}

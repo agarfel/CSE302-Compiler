@@ -1,0 +1,10 @@
+exception A;
+
+def main() {
+    try {
+        raise A;
+    } except B {
+        print(1);
+    }
+    return;
+}

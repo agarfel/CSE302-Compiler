@@ -1,0 +1,466 @@
+[
+    {
+        "proc": "@main",
+        "args": [],
+        "body": [
+            {
+                "opcode": "const",
+                "args": [
+                    1
+                ],
+                "result": "%0"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%0"
+                ],
+                "result": "%1"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    2
+                ],
+                "result": "%2"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%2"
+                ],
+                "result": "%3"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    3
+                ],
+                "result": "%4"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%4"
+                ],
+                "result": "%5"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    4
+                ],
+                "result": "%6"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%6"
+                ],
+                "result": "%7"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    5
+                ],
+                "result": "%8"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%8"
+                ],
+                "result": "%9"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    6
+                ],
+                "result": "%10"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%10"
+                ],
+                "result": "%11"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    7
+                ],
+                "result": "%12"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%12"
+                ],
+                "result": "%13"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    8
+                ],
+                "result": "%14"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%14"
+                ],
+                "result": "%15"
+            },
+            {
+                "opcode": "const",
+                "args": [
+                    9
+                ],
+                "result": "%16"
+            },
+            {
+                "opcode": "copy",
+                "args": [
+                    "%16"
+                ],
+                "result": "%17"
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%1"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    2,
+                    "%3"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    3,
+                    "%5"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    4,
+                    "%7"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    5,
+                    "%9"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    6,
+                    "%11"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    9,
+                    "%13"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    8,
+                    "%15"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    7,
+                    "%17"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@test",
+                    10
+                ],
+                "result": "%18"
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%18"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%1"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%3"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%5"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%7"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%9"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%11"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%13"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%15"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "param",
+                "args": [
+                    1,
+                    "%17"
+                ],
+                "result": null
+            },
+            {
+                "opcode": "call",
+                "args": [
+                    "@__bx_print_int",
+                    2
+                ],
+                "result": null
+            },
+            {
+                "opcode": "ret",
+                "args": [],
+                "result": null
+            }
+        ]
+    },
+    {
+        "proc": "@test",
+        "args": [
+            "%a",
+            "%b",
+            "%c",
+            "%d",
+            "%e",
+            "%f",
+            "%g",
+            "%h",
+            "%i"
+        ],
+        "body": [
+            {
+                "opcode": "add",
+                "args": [
+                    "%a",
+                    "%b"
+                ],
+                "result": "%19"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%19",
+                    "%c"
+                ],
+                "result": "%20"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%20",
+                    "%d"
+                ],
+                "result": "%21"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%21",
+                    "%e"
+                ],
+                "result": "%22"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%22",
+                    "%f"
+                ],
+                "result": "%23"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%23",
+                    "%g"
+                ],
+                "result": "%24"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%24",
+                    "%h"
+                ],
+                "result": "%25"
+            },
+            {
+                "opcode": "add",
+                "args": [
+                    "%25",
+                    "%i"
+                ],
+                "result": "%26"
+            },
+            {
+                "opcode": "ret",
+                "args": [
+                    "%26"
+                ],
+                "result": null
+            }
+        ]
+    }
+]

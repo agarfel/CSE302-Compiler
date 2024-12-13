@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 from bxlib.bxast import *
-import hashlib
 
 boolOp= {'<': 'jl','>': 'jg','<=': 'jle','>=': 'jge','==': 'jz','!=': 'jnz'}
 
@@ -20,15 +19,9 @@ class ToTac:
         self.tac = []
         self.scopes = [Scope()]
         self.whiles = []
-        self.exceptions_stack = []
         self.reporter = reporter
         self.proc = 'Global'
         self.functions = functions
-
-    def hash_exception(self, name):
-        h = hashlib.shake_256(name.encode('utf-8'))
-        i = int(h.hexdigest(3), 16)
-        return i
 
     def emit(self, opcode, args, result):
         self.body.append({"opcode": opcode, "args": args, "result": result})
@@ -40,8 +33,6 @@ class ToTac:
         self.reporter.report(f"Undefined variable {name}", -1, self.reporter.stage)
 
     def processProgram(self, p):
-        self.tac.append({"var": f'@exception', "init": 0})
-        self.scopes[-1].variables["exception"] = '@exception'
         for decl in p:
             self.processDeclaration(decl)
 
@@ -158,80 +149,6 @@ class ToTac:
                 value = self.processExpression(s.value)
                 self.emit("ret", [value], None)
 
-        elif type(s) == TryExcept:
-            lab_exceptions = self.label_counter
-            lab_end =  self.label_counter +1
-            self.label_counter += 2
-            
-            self.exceptions_stack.append((lab_exceptions,lab_end))
-
-            self.processStatement(s.block)
-            self.emit("jmp", [lab_end], None)
-            self.exceptions_stack.pop()
-
-            self.emit("label", [lab_exceptions], None)
-
-
-
-            for c in s.catches:
-                lab_false =  self.label_counter
-                self.label_counter += 1
-                var = '@exception'
-                h = self.hash_exception(c.name)
-                tmp = f'%{self.tmp_counter}'
-                self.tmp_counter += 1
-                self.emit('const', [h], tmp)
-                self.emit('cmpq', [tmp, var], None)
-                self.emit('jz', [lab_false], None)
-                tmp = f'%{self.tmp_counter}'
-                self.tmp_counter += 1
-                self.emit('const', [0], tmp)
-                self.emit("copy", [tmp], var)
-                self.processStatement(c.block)
-                self.emit("jmp", [lab_end], None)
-                self.emit("label", [lab_false], None)
-
-            
-            tmp = f'%{self.tmp_counter}'
-            self.tmp_counter += 1
-            var = '@exception'
-
-            self.emit('const', [0], tmp)
-            self.emit('cmpq', [tmp, var], None)
-            self.emit('jz', [lab_end], None)
-
-            if self.exceptions_stack == []:
-                if self.proc in self.functions['Function']:
-                    self.emit("ret", [tmp], None)
-                else:
-                    self.emit("ret", [], None)
-            else:
-                label = self.exceptions_stack[-1][0]
-                self.emit("jmp", [label], None)
-                
-            self.emit("label", [lab_end], None)
-
-        elif type(s) == Raise:
-            var = '@exception'
-            tmp = f'%{self.tmp_counter}'
-            self.tmp_counter += 1
-            h = self.hash_exception(s.name)
-            self.emit('const', [h], tmp)
-            self.emit("copy", [tmp], var)
-            if self.exceptions_stack == []:
-                if self.proc in self.functions['Function']:
-                    self.emit("ret", [tmp], None)
-                else:
-                    self.emit("ret", [], None)
-            else:
-                label = self.exceptions_stack[-1][0]
-                self.emit("jmp", [label], None)
-        
-        else:
-            self.reporter.report(f'Unrecognized statement: {type(s)}', s.line, self.reporter.stage)
-
-
-
 
     def processExpression(self, e : Expr):
         if type(e) == VarExpr:
@@ -278,40 +195,15 @@ class ToTac:
             for i, arg in enumerate(e.args[6:]):
                 value = self.processExpression(arg)
                 self.emit('param', [len(e.args)-i, value], None)
-            return_value = None
+
             if e.name in self.functions['Function']:
                 tmp = self.tmp_counter
                 self.tmp_counter += 1
                 self.emit('call', [f'@{e.name}', len(e.args)+1], f'%{tmp}')
-                return_value = f'%{tmp}'
+                return f'%{tmp}'
             else:
                 self.emit('call', [f'@{e.name}', len(e.args)+1], None)
-
-            tmp = f'%{self.tmp_counter}'
-            lab_no_exception =  self.label_counter
-            self.label_counter += 1
-            self.tmp_counter += 1
-            var = '@exception'
-
-            self.emit('const', [0], tmp)
-            self.emit('cmpq', [tmp, var], None)
-            self.emit('jz', [lab_no_exception], None)
-
-            if self.exceptions_stack == []:
-                if self.proc in self.functions['Function']:
-                    self.emit("ret", [tmp], None)
-                else:
-                    self.emit("ret", [], None)
-            else:
-                label = self.exceptions_stack[-1][0]
-                self.emit("jmp", [label], None)
-            self.emit("label", [lab_no_exception], None)
-
-            return return_value
-
-            
-        else:
-            self.reporter.report(f'Unrecognized expression: {type(e)}', e.line, self.reporter.stage)
+                return None
 
     def getBinOp(self, op):
         if op == '+': return "add"
@@ -328,7 +220,7 @@ class ToTac:
         # elif op == '!=': return "neq"
         # elif op == '<': return "lt"
         # elif op == '<=': return "lteq"
-        # elif op == '>': return "gt"self.label_counter += 
+        # elif op == '>': return "gt"
         # elif op == '>=': return "gteq"
         # elif op == '&&': return "and"
         # elif op == '||': return "or"

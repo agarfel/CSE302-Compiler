@@ -1,0 +1,19 @@
+exception E1;
+exception E2;
+
+def func() raises E1, E2 {
+    raise E1;
+    raise E2;
+    return;
+}
+
+def main() {
+    try {
+        func();
+    } except E2 {
+        print(2);
+    } except E1 {
+        print(1);
+    }
+    return;
+}

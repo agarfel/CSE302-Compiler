@@ -1,0 +1,12 @@
+exception DivByZero;
+
+def main() {
+    try {
+        var x = 10 / 0;
+    } except DivByZero {
+        print(111);
+    } except DivByZero {
+        print(000);
+    }
+    return;
+}

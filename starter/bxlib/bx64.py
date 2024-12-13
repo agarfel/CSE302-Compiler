@@ -154,7 +154,7 @@ class Tox64:
         if len(args) != 1:
             self.reporter.report(f'Processing Copy: expected len(args) == 1, found length {len(args)}', -2, self.reporter.stage)
         arg = self.lookup_tmp(args[0])
-        result = self.lookup_tmp(result)
+        result = self.lookup_tmp(result)        
         self.body.append(f'movq {arg}, %r11')
         self.body.append(f'movq %r11, {result}')
 

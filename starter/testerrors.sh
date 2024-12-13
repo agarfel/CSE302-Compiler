@@ -2,7 +2,7 @@
 
 
 # Loop through all .bx files in the "examples" folder
-for bx_file in regression/*.bx; do
+for bx_file in regression/exceptions*.bx; do
     # Get the base name of the file (without extension)
     base_name=$(basename "$bx_file" .bx)
 

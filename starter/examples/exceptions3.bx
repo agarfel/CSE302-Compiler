@@ -1,0 +1,20 @@
+exception CustomError;
+
+def func1() raises CustomError {
+    raise CustomError;
+    return;
+}
+
+def func2() raises CustomError {
+    func1();
+    return;
+}
+
+def main() {
+    try {
+        func2();
+    } except CustomError {
+        print(111);
+    }
+    return;
+}

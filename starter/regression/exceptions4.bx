@@ -1,0 +1,12 @@
+exception MyException;
+
+def main() {
+    try {
+        raise MyException;
+    } except MyException {
+        print(1);
+    } except MyException {
+        print(0);
+    }
+    return;
+}

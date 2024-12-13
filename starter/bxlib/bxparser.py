@@ -43,31 +43,34 @@ class Parser:
         p[0] = ExceptionDecl(name=p[2], line=p.lineno(1))
             
     def p_procdecl(self, p):
-        """procdecl : DEF IDENT LPAREN params RPAREN COLON ty raises block
+        """procdecl : DEF IDENT LPAREN params RPAREN COLON ty RAISES raises block
                     | DEF IDENT LPAREN params RPAREN COLON ty block
-                    | DEF IDENT LPAREN params RPAREN raises block
+                    | DEF IDENT LPAREN params RPAREN RAISES raises block
                     | DEF IDENT LPAREN params RPAREN block """
 
         if len(p) == 7:
             # print(1, p[2])
-            p[0] = ProcDecl(name=p[2], args=p[4], block=p[6], return_ty=None, raises=None, line=p.lineno(1))
+            p[0] = ProcDecl(name=p[2], args=p[4], block=p[6], return_ty=None, raises=[], line=p.lineno(1))
 
-        elif len(p) == 8:
-            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=None, raises=p[7], block=p[8], line=p.lineno(1))
+        elif len(p) == 9 and type(p[7])==Ty:
+            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=[], block=p[8], line=p.lineno(1))
             # print(2, p[2])
         elif len(p) == 9:
-                p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=None, block=p[8], line=p.lineno(1))
-        elif len(p) == 10:
-            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=p[8], block=p[9], line=p.lineno(1))
+                p[0] = ProcDecl(name=p[2], args=p[4], return_ty=None, raises=p[7], block=p[8], line=p.lineno(1))
+        elif len(p) == 11:
+            p[0] = ProcDecl(name=p[2], args=p[4], return_ty=p[7], raises=p[9], block=p[10], line=p.lineno(1))
         else: print('CRY')
 
     def p_raises(self, p):
-        """raises : RAISES IDENT raises
+        """raises : IDENT COMMA raises
+                    | IDENT
                     |"""
         if len(p) == 1:
             p[0] = []
+        elif len(p) == 2:
+            p[0] = [Raises(name=p[1], line=p.lineno(1))]
         else:
-            p[0] = [Raises(name=p[2], line=p.lineno(1))]
+            p[0] = [Raises(name=p[1], line=p.lineno(1))]
             p[0] += p[3]
 
     def p_param(self, p):
@@ -126,7 +129,7 @@ class Parser:
             p[0] = []
         else:
             p[0] = [Catch(name=p[2], block=p[3], line=p.lineno(1))]
-            p[0].append(p[4])
+            p[0] += p[4]
 
 
     def p_raise(self, p):

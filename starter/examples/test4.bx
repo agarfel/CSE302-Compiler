@@ -1,0 +1,9 @@
+def main() {
+  p();
+  return;
+}
+
+def p(){
+    print(1);
+    return;
+}

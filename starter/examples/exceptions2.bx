@@ -1,0 +1,23 @@
+exception DivByZero;
+exception Overflow;
+
+def risky_operation(x: int): int raises DivByZero, Overflow {
+    if (x == 0) {
+        raise DivByZero;
+    }
+    if (x > 100) {
+        raise Overflow;
+    }
+    return x * 2;
+}
+
+def main() {
+    try {
+        var result = risky_operation(0): int;
+    } except DivByZero {
+        print(1000);
+    } except Overflow {
+        print(1111);
+    }
+    return;
+}
