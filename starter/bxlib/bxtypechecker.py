@@ -216,7 +216,7 @@ class TypeChecker:
     #             raises += self.procedures[stmt.name].raise_list
     #     return raises
 
-    def for_statement(self, s: Statement):
+    def for_statement(self, s: Statement, exceptions=[]):
         raises = []
         if type(s) == VarDecl:
             raises += self.for_varDecl(s)
@@ -250,7 +250,7 @@ class TypeChecker:
             if s.condition.ty != 'bool':
                 self.reporter.report(f'Cannot use value of type {s.condition.ty} as condition. Expected expression of type bool', s.line, self.reporter.stage)
                 return raises
-            raises += self.for_statement(s.block, exceptions=self.scopes[-1].exceptions)
+            raises += self.for_statement(s.block, self.scopes[-1].exceptions)
 
         elif type(s) == Jump:
             pass

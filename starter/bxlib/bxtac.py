@@ -182,7 +182,7 @@ class ToTac:
                 self.tmp_counter += 1
                 self.emit('const', [h], tmp)
                 self.emit('cmpq', [tmp, var], None)
-                self.emit('jz', [lab_false], None)
+                self.emit('jnz', [lab_false], None)
                 tmp = f'%{self.tmp_counter}'
                 self.tmp_counter += 1
                 self.emit('const', [0], tmp)

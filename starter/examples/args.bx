@@ -9,7 +9,7 @@ def main() {
     var h = 8 : int;
     var i = 9 : int;
 
-    print(test(a,b,c,d,e,f,g,h,i));
+    print(test(a,b,c,d,e,f));
     print(a);
     print(b);
     print(c);
@@ -23,6 +23,6 @@ def main() {
     return;
 }
 
-def test(a, b, c, d, e, f, g, h, i : int) : int {
-    return a+b+c+d+e+f+g+h+i;
+def test(a, b, c, d, e, f: int) : int {
+    return a+b+c+d+e+f;
 }

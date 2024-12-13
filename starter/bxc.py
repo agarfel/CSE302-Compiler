@@ -62,12 +62,12 @@ def run_compiler(reporter, content, basename, debug=False):
     with open(f'{basename}.tac.json', 'w') as f:
         json.dump(data, f)
 
-    # reporter.stage = "CFG"
-    # cfg = CFG(reporter)
-    # data = cfg.run(data)
+    reporter.stage = "CFG"
+    cfg = CFG(reporter)
+    data = cfg.run(data)
     
-    # with open(f'{basename}.opt.tac.json', 'w') as f:
-    #     json.dump(data, f)
+    with open(f'{basename}.opt.tac.json', 'w') as f:
+        json.dump(data, f)
 
     reporter.stage = "TAC to x64"
     tox64 = Tox64(reporter)

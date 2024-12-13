@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Loop through all .bx files in the "examples" folder
-for bx_file in examples/args.bx; do
+for bx_file in examples/*.bx; do
     # Get the base name of the file (without extension)
     base_name=examples/$(basename "$bx_file" .bx)
     b=$(basename "$bx_file" .bx)
@@ -45,9 +45,10 @@ for bx_file in examples/args.bx; do
     fi
     
     rm "$base_name.x64-linux.s"
-    #rm "$base_name.exe"
+    rm "$base_name.s"
+    rm "$base_name.exe"
     rm "$base_name.tac.json"
-    #rm "$base_name.opt.tac.json"
+    rm "$base_name.opt.tac.json"
     rm "bxlib/bx_runtime.o"
 
     #echo "$bx_file processed."

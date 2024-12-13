@@ -239,6 +239,10 @@ class Tox64:
         asm[:0] = [f'\t.section .rodata',
                     f'.lprintfmt:',
                     f'\t.string "%ld\\n"']
+        sname = rname + '.s'
+        with open(sname, 'w') as afp:
+            print(*asm, file=afp, sep='\n')
+        
         sname = rname + '.x64-linux.s'
         with open(sname, 'w') as afp:
             print(*asm, file=afp, sep='\n')
